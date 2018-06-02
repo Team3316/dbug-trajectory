@@ -5,9 +5,11 @@ from bezier import bezier
 fig = plot.figure()
 axes = plot.axes()
 
+
 def plota(points, s):
     for p in points:
         axes.plot(p[0], p[1], s)
+
 
 if __name__ == '__main__':
     plot.xlim(0, 10)
@@ -27,10 +29,9 @@ if __name__ == '__main__':
         [4, 2.5]
     ]
     plota(pts, 'rx')
-    plota(dts, 'bx')
 
     v4 = bezier(np.array(pts), np.array(dts))
     for c in range(len(v4[:, 0])):
-        axes.plot(v4[c, 0][0], v4[c, 1][0], 'green')
+        axes.plot(v4[c, 0][0], v4[c, 1][0], 'red')
 
     fig.savefig('graph.png')
