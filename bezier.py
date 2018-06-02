@@ -8,6 +8,14 @@ B = np.array([
     [1, 0, 0, 0]
 ])
 
+# Hermite basis matrix
+H = np.array([
+    [2, -2, 1, 1],
+    [-3, 3, -2, -1],
+    [0, 0, 1, 0],
+    [1, 0, 0, 0]
+])
+
 def polynomial (t, xs, ys):
     """
     Returns the Bézier polynomial result for t through the points specified using xs and ys.
