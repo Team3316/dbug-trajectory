@@ -104,10 +104,10 @@ class LinePlayground(FloatLayout):
 class PlannerApp(App):
     def __init__(self):
         super(PlannerApp, self).__init__()
-        self.config = ConfigParser()
 
     def save_config(self, *largs):
-        self.config['field'] = {
+        config = ConfigParser()
+        config['field'] = {
             'lb_x': Utils.lb_corner[0],
             'lb_y': Utils.lb_corner[1],
             'rt_x': Utils.rt_corner[0],
@@ -116,12 +116,13 @@ class PlannerApp(App):
             'world_height': field_dimensions[1]
         }
         with open('planner.ini', 'w') as cfile:
-            self.config.write(cfile)
+            config.write(cfile)
 
     def import_config(self, *largs):
         global field_dimensions
-        print(self.config.read('planner.ini'))
-        field = self.config.read('planner.ini')['field']
+        config = ConfigParser()
+        config.read('planner.ini')
+        field = config['field']
         field_dimensions = (float(field['world_width']), float(field['world_height']))
         Utils.lb_corner = (int(field['lb_x']), int(field['lb_y']))
         Utils.rt_corner = (int(field['rt_x']), int(field['rt_y']))
