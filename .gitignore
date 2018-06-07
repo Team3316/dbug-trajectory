@@ -99,5 +99,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
 graph.png
 .idea

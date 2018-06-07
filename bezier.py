@@ -16,8 +16,8 @@ def polynomial(t, xs, ys):
     vect = np.array([t ** 3, t ** 2, t, 1]).T
     Bt = np.dot(B, vect)
     return np.array([
-        np.dot(xs, Bt),
-        np.dot(ys, Bt)
+        np.dot(xs, Bt).tolist(),
+        np.dot(ys, Bt).tolist()
     ])
 
 

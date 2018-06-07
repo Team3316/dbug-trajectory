@@ -1,0 +1,16 @@
+<LinePlayground>:
+    canvas.before:
+        BorderImage:
+            border: 0, 0, 0, 0
+            pos: self.pos
+            size: self.size
+            source: 'field.jpg'
+    canvas:
+        Color:
+            rgba: 0, 0, 1, 1.0
+        Line:
+            points: self.pts
+            joint: 'round'
+            cap: 'round'
+            width: 2.0
+            close: False
