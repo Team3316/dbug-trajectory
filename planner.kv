@@ -14,3 +14,27 @@
             cap: 'round'
             width: 2.0
             close: False
+
+BoxLayout:
+    orientation: 'horizontal'
+
+    BoxLayout:
+        orientation: 'vertical'
+        LinePlayground:
+            id: 'field'
+
+        BoxLayout:
+            size_hint: (1, None)
+            height: 50
+
+            Button:
+                text: 'Export Field Settings'
+                on_release: app.save_config()
+
+            Button:
+                text: 'Import Field Settings'
+                on_release: app.import_config()
+
+            Button:
+                text: 'Draw Test Data'
+                on_release: app.test_data()

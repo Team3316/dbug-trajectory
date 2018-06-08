@@ -59,16 +59,15 @@ class Utils(object):
 class LinePlayground(FloatLayout):
     pts = ListProperty([])
     dts = ListProperty([])
-    field_set = ListProperty([False, False])
 
-    def __init__(self):
-        super(LinePlayground, self).__init__()
+    def __init__(self, **kwargs):
+        super(LinePlayground, self).__init__(**kwargs)
         self.size = field_img_size
 
     def on_touch_down(self, touch):
         if super(LinePlayground, self).on_touch_down(touch):
             return True
-        if self.field_set[0] and self.field_set[1]:
+        if Utils.lb_corner is not None and Utils.rt_corner is not None:
             touch.grab(self)
             self.pts.append(touch.pos)
         return True
@@ -82,17 +81,15 @@ class LinePlayground(FloatLayout):
     def on_touch_up(self, touch):
         if Utils.lb_corner is None:  # Handle left-bottom field corner
             Utils.lb_corner = touch.pos
-            self.field_set[0] = True
             with self.canvas:
                 Utils.color(r=0, g=255, b=0)
                 Line(circle=(touch.pos[0], touch.pos[1], 3), width=3)
         elif Utils.rt_corner is None:  # Handle right-top field corner
             Utils.rt_corner = touch.pos
-            self.field_set[1] = True
             with self.canvas:
                 Utils.color(r=0, g=255, b=0)
                 Line(circle=(touch.pos[0], touch.pos[1], 3), width=3)
-        if touch.grab_current is self and self.field_set[0] and self.field_set[1]:
+        elif touch.grab_current is self:
             touch.ungrab(self)
             with self.canvas:
                 Utils.color(r=244.0, g=67.0, b=54.0)
@@ -102,8 +99,8 @@ class LinePlayground(FloatLayout):
 
 
 class PlannerApp(App):
-    def __init__(self):
-        super(PlannerApp, self).__init__()
+    def __init__(self, **kwargs):
+        super(PlannerApp, self).__init__(**kwargs)
 
     def save_config(self, *largs):
         config = ConfigParser()
@@ -127,33 +124,12 @@ class PlannerApp(App):
         Utils.lb_corner = (int(field['lb_x']), int(field['lb_y']))
         Utils.rt_corner = (int(field['rt_x']), int(field['rt_y']))
 
-    def test_data(self, field, *largs):
+    def test_data(self, *largs):
         pt = Utils.world_to_field((1, 0))
+        field = self.ids.field
         with field.canvas:
             Utils.color(r=0, g=255, b=0)
             Line(circle=(pt[0], pt[1], 3), width=3)
-
-    def build(self):
-        layout = BoxLayout(size_hint=(1,  None), height=50)
-
-        cexport = Button(text='Export Field Settings')
-        cexport.bind(on_release=self.save_config)
-        layout.add_widget(cexport)
-
-        cimport = Button(text='Import Field Settings')
-        cimport.bind(on_release=self.import_config)
-        layout.add_widget(cimport)
-
-        field = LinePlayground()
-
-        test = Button(text='Draw test data')
-        test.bind(on_release=partial(self.test_data, field))
-        layout.add_widget(test)
-
-        root = BoxLayout(orientation='vertical')
-        root.add_widget(field)
-        root.add_widget(layout)
-        return root
 
 
 if __name__ == '__main__':
