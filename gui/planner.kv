@@ -1,4 +1,6 @@
 #:import LinePlayground gui.line_playground
+#:import Point gui.point_widget
+
 <LinePlayground>:
     canvas.before:
         BorderImage:
@@ -15,6 +17,11 @@
             cap: 'round'
             width: 2.0
             close: False
+
+<Point>:
+    Ellipse:
+        pos: self.pos
+        size: 3, 3
 
 BoxLayout:
     orientation: 'horizontal'

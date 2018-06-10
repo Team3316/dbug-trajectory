@@ -32,6 +32,6 @@ if __name__ == '__main__':
 
     v4 = bezier(np.array(pts), np.array(dts))
     for c in range(len(v4[:, 0])):
-        axes.plot(v4[c, 0][0], v4[c, 1][0], 'red')
+        axes.plot(v4[c, 0][0], v4[c, 1][0], 'green')
 
     fig.savefig('graph.png')
