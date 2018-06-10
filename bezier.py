@@ -9,6 +9,10 @@ B = np.array([
 ])
 
 
+# Number of samples for every picewise Bézier curve
+NUM_OF_SAMPLES = 100
+
+
 def polynomial(t, xs, ys):
     """
     Returns the Bézier polynomial result for t through the points specified using xs and ys.
@@ -21,6 +25,24 @@ def polynomial(t, xs, ys):
     ])
 
 
+
+def flip_curve(bezier, base_width):
+    """
+    Flip a given Bézier curve.
+    :param bezier: The curve to flip
+    :return: The flipped curve coordinates
+    """
+    M = np.array([
+        [-1, 0],
+        [0, 1]
+    ])
+    C = np.array([
+        base_width * np.ones(NUM_OF_SAMPLES),
+        np.zeros(NUM_OF_SAMPLES)
+    ])
+    return [np.dot(M, a) + C for a in bezier]
+
+
 def bezier(pts, dts):
     """
     Returns a piecewise Bézier curve, using derivative information for each knot.
@@ -28,8 +50,7 @@ def bezier(pts, dts):
     :param dts: Array of derivative information for each knot, assuming
                 that dts[i] has the derivative information for pts[i],
                 and that dts[i] is "to the left" of pts[i] -- which means
-                that if dts[i] = (x1, y1) and pts[i] = (x2, y2) then the
-                following occurs: x1 < x2 and y1 < y2. array<vec2>
+                that if dts[i] = (dx, dy) and pts[i] = (x, y) then dx =< x. array<vec2>
     :return: The curve points run using np.linspace(0, 1, num=1000). array<vec2>
     """
     ld = len(dts)
@@ -52,8 +73,9 @@ def bezier(pts, dts):
     ycoords = control[:, :, 1]
 
     # 4. Run the function!
-    sp = np.linspace(0, 1, num=100)
+    sp = np.linspace(0, 1, num=NUM_OF_SAMPLES)
     m = np.linspace(0, 0, num=0)
     X, _ = np.meshgrid(sp, m, sparse=True)
-    return polynomial(X, xcoords, ycoords).T
+    res = polynomial(X, xcoords, ycoords).T
+    return [[res[c, 0][0].T, res[c, 1][0].T] for c in range(len(res))]
 
