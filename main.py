@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plot
 import numpy as np
-from bezier import bezier, flip_curve
+from bezier import Bezier
 
 FEET_IN_METER = 0.3048
 fig = plot.figure(figsize=(15, 14.96), dpi=150)
@@ -55,9 +55,20 @@ if __name__ == '__main__':
     ]
     plota(pts, 'rx')
 
-    v4 = bezier(np.array(pts), np.array(dts))
-    v4 = flip_curve(v4, 8.21 - 0.91)
-    for c in range(len(v4)):
-        axes.plot(v4[c][0], v4[c][1], 'green')
+    times = [
+        0,  # First point always is at time 0!!
+        1,
+        5,
+        9
+    ]
+
+    bezier = Bezier(pts=pts, dts=dts, times=times)
+    bezier.gen_derivatives()
+    bezier.gen_control_points()
+    curve = bezier.curve(flip=True, basewidth=8.21 - 0.91)
+
+    for i in range(len(curve)):
+        axes.plot(curve[i][0], curve[i][1], 'green')
 
     fig.savefig('graph.png')
+    bezier.write_to_file()
