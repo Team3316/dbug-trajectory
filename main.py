@@ -66,16 +66,16 @@ if __name__ == '__main__':
     bezier = Bezier(pts=pts, dts=dts, times=times)
     bezier.gen_constraints()
     bezier.gen_segments()
-    curve = bezier.curve(basewidth=8.21-0.91)
+    curve = bezier.curve(flip=True, basewidth=8.21)
 
     axes.plot(curve[:, 0], curve[:, 1], 'green')
 
     lh = len(bezier.curve_heading)
-    for i in range(int(lh / 5)):
-        a = bezier.curve_heading[5 * i]
+    for i in range(int(lh / 10)):
+        a = bezier.curve_heading[10 * i]
         plot.arrow(
-            curve[5 * i, 0],
-            curve[5 * i, 1],
+            curve[10 * i, 0],
+            curve[10 * i, 1],
             0.5 * cos(radians(a)),
             0.5 * sin(radians(a)),
             fc='b',

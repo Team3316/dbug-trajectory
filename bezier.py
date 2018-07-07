@@ -40,10 +40,11 @@ class Bezier(object):
             [0, 1]
         ])
         C = np.array([
-            base_width * np.ones(Bezier.NUM_OF_SAMPLES),
-            np.zeros(Bezier.NUM_OF_SAMPLES)
+            base_width * np.ones(Segment.NUM_OF_SAMPLES * self.num_of_segments),
+            np.zeros(Segment.NUM_OF_SAMPLES * self.num_of_segments)
         ])
-        self.curve_pos = np.array([np.dot(M, a) + C for a in self.curve_pos])
+        self.curve_pos = (np.dot(M, self.curve_pos.T) + C).T
+        self.curve_heading = 180 - self.curve_heading
         return self.curve_pos
 
     def gen_constraints(self):

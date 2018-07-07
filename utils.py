@@ -20,6 +20,7 @@ class Utils(object):
         if type(dx) != type(dy):
             raise ValueError('dx and dy should be the same type: either a float or a list of floats.')
         if type(dx) is np.float64 or type(dx) is float:
-            return degrees(atan2(dy, dx))
+            angle = degrees(atan2(dy, dx))
+            return 90 - angle if angle >= 90 else angle
         if type(dx) is np.ndarray or type(dx) is List[float]:
             return np.arctan2(dy, dx) * 180 / np.pi
