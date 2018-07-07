@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plot
 import numpy as np
 from bezier import Bezier
+from math import sin, cos, radians
 
 FEET_IN_METER = 0.3048
 fig = plot.figure(figsize=(15, 14.96), dpi=150)
@@ -15,7 +16,7 @@ def plota(points, s):
 def setup_plot(width, height):
     plot.xlim(0, height)
     plot.xticks(fontsize=13, rotation=90)
-    axes.set_xticks(np.arange(0, height, FEET_IN_METER))
+    # axes.set_xticks(np.arange(0, height, FEET_IN_METER))
 
     plot.ylim(0, width)
     plot.yticks(fontsize=13)
@@ -41,34 +42,47 @@ if __name__ == '__main__':
     setup_margins(8.21)
 
     pts = [
-        [0, 0],
-        [1, 2],
-        [3, 2],
-        [4, 4]
+        [0.91, 0],
+        [1.91, 2],
+        [3.91, 2],
+        [4.91, 4]
     ]
 
     dts = [
-        [0, 1.5],
-        [0.5, 2],
-        [2.5, 2],
-        [4, 2.5]
+        [0.91, 1.5],
+        [1.41, 2],
+        [3.41, 2],
+        [4.91, 2.5]
     ]
     plota(pts, 'rx')
 
     times = [
         0,  # First point always is at time 0!!
         1,
-        5,
-        9
+        3,
+        4
     ]
 
     bezier = Bezier(pts=pts, dts=dts, times=times)
-    bezier.gen_derivatives()
-    bezier.gen_control_points()
-    curve = bezier.curve(flip=True, basewidth=8.21 - 0.91)
+    bezier.gen_constraints()
+    bezier.gen_segments()
+    curve = bezier.curve(basewidth=8.21-0.91)
 
-    for i in range(len(curve)):
-        axes.plot(curve[i][0], curve[i][1], 'green')
+    axes.plot(curve[:, 0], curve[:, 1], 'green')
+
+    lh = len(bezier.curve_heading)
+    for i in range(int(lh / 5)):
+        a = bezier.curve_heading[5 * i]
+        plot.arrow(
+            curve[5 * i, 0],
+            curve[5 * i, 1],
+            0.5 * cos(radians(a)),
+            0.5 * sin(radians(a)),
+            fc='b',
+            ec='b',
+            head_width=0.03,
+            length_includes_head=True
+        )
 
     fig.savefig('graph.png')
     bezier.write_to_file()
