@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plot
+from matplotlib.patches import Rectangle
 import numpy as np
 from bezier import Bezier
 from math import sin, cos, radians
@@ -8,15 +9,15 @@ fig = plot.figure(figsize=(15, 14.96), dpi=150)
 axes = plot.axes()
 
 
-def plota(points, s):
+def plota(points, origin, s):
     for p in points:
-        axes.plot(p[0], p[1], s)
+        axes.plot(p[0] + origin[0], p[1] + origin[1], s)
 
 
 def setup_plot(width, height):
     plot.xlim(0, height)
     plot.xticks(fontsize=13, rotation=90)
-    # axes.set_xticks(np.arange(0, height, FEET_IN_METER))
+    axes.set_xticks(np.arange(0, height, FEET_IN_METER))
 
     plot.ylim(0, width)
     plot.yticks(fontsize=13)
@@ -36,6 +37,12 @@ def setup_margins(height):
     ty = [height, height - 0.91]
     axes.plot(ty[0:2], tx[0:2], 'k-')
 
+
+def setup_obstacles():
+    switch = Rectangle((2.165, 3.556), 3.89, 1.4224)
+    axes.add_patch(switch)
+
+
 def plot_headings(headings, resolution: int = 10):
     lh = len(headings)
     for i in range(int(lh / resolution)):
@@ -51,36 +58,39 @@ def plot_headings(headings, resolution: int = 10):
             length_includes_head=True
         )
 
+
 if __name__ == '__main__':
     setup_plot(8.23, 8.21)
     setup_margins(8.21)
+    setup_obstacles()
 
     pts = [
-        [0.91, 0],
-        [1.91, 2],
-        [3.91, 2],
-        [4.91, 4]
+        [0, 0],
+        [0.895, 4.572]
     ]
 
     dts = [
-        [0.91, 1.5],
-        [1.41, 2],
-        [3.41, 2],
-        [4.91, 2.5]
+        [0, 1.5],
+        [-1, 4.572]
     ]
-    plota(pts, 'rx')
 
     times = [
         0,  # First point always is at time 0!!
-        1,
-        3,
-        4
+        1
     ]
 
+    robotwidth = 0.7
+    origin = [0.91 + robotwidth / 2, 0]
+
     bezier = Bezier(pts=pts, dts=dts, times=times)
+
+    bezier.origin = origin
+    plota(pts, origin, 'rx')
+    plota(dts, origin, 'bo')
+
     bezier.gen_constraints()
     bezier.gen_segments()
-    curve = bezier.curve(0.7, basewidth=8.21)
+    curve = bezier.curve(0.7, flip=True, basewidth=8.21)
 
     axes.plot(curve[:, 0], curve[:, 1], '#00ff00')
     plot_headings(bezier.curve_heading)

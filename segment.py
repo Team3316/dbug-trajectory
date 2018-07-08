@@ -10,6 +10,9 @@ class Segment(object):
     # Number of samples for every picewise Bézier curve
     NUM_OF_SAMPLES = 100
 
+    # Number of samples for length integral calculation
+    L_NUM_OF_SAMPLES = 75 * 1000
+
     # Bezier basis matrix
     B = np.array([
         [-1, 3, -3, 1],
@@ -24,7 +27,8 @@ class Segment(object):
                  start_der: Point = [0, 0],
                  end_der: Point = [0, 0],
                  start_time: float = 0,
-                 end_time: float = 0):
+                 end_time: float = 0,
+                 origin: Point = [0, 0]):
         """
         Initializes a new cubic Bézier segment with the given paramters.
         :param start_point: The starting point of the segment.
@@ -33,9 +37,10 @@ class Segment(object):
         :param end_der: The derivative vector corresponding to the goal point.
         :param start_time: The starting time of the segment.
         :param end_time: The end time of the segment.
+        :param origin: A custom origin point for the path th begin from. Default - (0, 0).
         """
-        self.pts = [start_point, end_point]
-        self.dts = [start_der, end_der]
+        self.pts = [start_point + origin, end_point + origin]
+        self.dts = [start_der + origin, end_der + origin]
         self.times = [start_time, end_time]
         self.control_points = np.array([
             self.pts[0],
@@ -66,6 +71,17 @@ class Segment(object):
         """
         vect = np.array([3 * t ** 2, 2 * t, 1, 0]).T
         return Segment.apply_to_curve(vect, xs, ys)
+
+    def length(self, t: float = 1):
+        """
+        Computes the segment's length integral approximation using trapezoidal approximation at a point t.
+        :param t: The point to approximate around, 0 <= t <= 1
+        :return: The approximated value of the integral
+        """
+        n = Segment.L_NUM_OF_SAMPLES
+        _, dv = self.curve(t, n)
+        ndv = np.array(dv)
+        return Utils.length_integral(t, ndv, n)
 
     def curve(self, t: float, n: int = NUM_OF_SAMPLES):
         """

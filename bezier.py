@@ -21,6 +21,7 @@ class Bezier(object):
         self.times = np.array(times)
         self.num_of_segments = len(pts) - 1
 
+        self.origin = [0, 0]
         self.complete_derivatives: np.ndarray = None
         self.curve_segments: List[Segment] = None
         self.curve_pos: np.ndarray = None
@@ -34,6 +35,7 @@ class Bezier(object):
         Flip a given Bézier curve.
         :return: The flipped curve coordinates
         """
+        # TODO - Move this function to the Segment class
 
         if self.curve_pos is None:
             raise NotImplementedError('A curve is needed for it to be flipped.')
@@ -47,6 +49,8 @@ class Bezier(object):
         ])
         self.curve_pos = (np.dot(M, self.curve_pos.T) + C).T
         self.curve_heading = 180 - self.curve_heading
+        self.curve_robotl = (np.dot(M, self.curve_robotl.T) + C).T
+        self.curve_robotr = (np.dot(M, self.curve_robotr.T) + C).T
         return self.curve_pos
 
     def gen_constraints(self):
@@ -78,7 +82,8 @@ class Bezier(object):
                 start_der=self.complete_derivatives[2 * k],
                 end_der=self.complete_derivatives[2 * k + 1],
                 start_time=self.times[k],
-                end_time=self.times[k + 1]
+                end_time=self.times[k + 1],
+                origin=self.origin
             )
             for k in range(lp - 1)
         ]
@@ -113,7 +118,7 @@ class Bezier(object):
         :param filename: The wanted filename for the file. Default - curveinfo.csv
         """
         with open(filename, 'w', newline='') as csvfile:
-            fields = ['time', 'x', 'y', 'dx', 'dy']
+            fields = ['time', 'x', 'y', 'dx', 'dy', 'heading']
             writer = DictWriter(csvfile, fieldnames=fields)
             writer.writeheader()
             for i in range(self.num_of_segments):
@@ -127,7 +132,8 @@ class Bezier(object):
                         'x': self.curve_pos[100 * i + k, 0],
                         'y': self.curve_pos[100 * i + k, 1],
                         'dx': self.curve_vel[100 * i + k, 0],
-                        'dy': self.curve_vel[100 * i + k, 1]
+                        'dy': self.curve_vel[100 * i + k, 1],
+                        'heading': 90 - self.curve_heading[100 * i + k]
                     }
                     for k in range(rangestart, Segment.NUM_OF_SAMPLES)
                 ])
