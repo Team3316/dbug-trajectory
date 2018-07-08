@@ -1,7 +1,7 @@
 from utils import Utils, PointList
+from typing import List, Tuple
 from segment import Segment
 from csv import DictWriter
-from typing import List
 import numpy as np
 
 
@@ -26,6 +26,8 @@ class Bezier(object):
         self.curve_pos: np.ndarray = None
         self.curve_vel: np.ndarray = None
         self.curve_heading: np.ndarray = None
+        self.curve_robotl: np.ndarray = None
+        self.curve_robotr: np.ndarray = None
 
     def flip(self, base_width):
         """
@@ -81,7 +83,7 @@ class Bezier(object):
             for k in range(lp - 1)
         ]
 
-    def curve(self, flip: bool = False, basewidth: float = None):
+    def curve(self, robot_width: float, flip: bool = False, basewidth: float = None):
         """
         Calculates the position, velocity and heading information for each point in the path.
         :return: The curve position points run using np.linspace(0, 1, num=100). array<vec2>
@@ -95,6 +97,10 @@ class Bezier(object):
 
         t = Utils.linspace(0, 1, samples=Segment.NUM_OF_SAMPLES)
         self.curve_heading = np.concatenate([seg.heading(t).tolist()[0] for seg in self.curve_segments])
+
+        robot_curves = [seg.robot_curve(1, robot_width) for seg in self.curve_segments]
+        self.curve_robotl = np.concatenate([tup[0] for tup in robot_curves])
+        self.curve_robotr = np.concatenate([tup[1] for tup in robot_curves])
 
         if flip:
             self.flip(basewidth)

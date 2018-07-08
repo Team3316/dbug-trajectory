@@ -71,6 +71,7 @@ class Segment(object):
         """
         Calculates the position and velocity curve between 0 and t.
         :param t: The end point of the segment.
+        :param n: The number of samples to create of the curve.
         :return: Position and velocity values for the interval [0, t].
         """
         if t < 0 or t > 1:
@@ -90,6 +91,30 @@ class Segment(object):
         vel = resvel[:, 0].tolist()
 
         return pos, vel
+
+    def robot_curve(self, t: float, basewidth: float, n: int = NUM_OF_SAMPLES):
+        """
+        Calculates the position curve for the robot's left and right sides between 0 and t.
+        :param t: The end point of the segment.
+        :param basewidth: The width of the robot's chassis, measured from the half of the wheels.
+        :param n: The number of samples to create of the curve.
+        :return: Left and right position values for the interval [0, t].
+        """
+        if t < 0 or t > 1:
+            raise AssertionError('t is not in range, should be between 0 and 1.')
+
+        xcoords = self.control_points[0:4, 0]
+        ycoords = self.control_points[0:4, 1]
+
+        x = Utils.linspace(0, t, samples=n)
+        pos = self.position(x, xcoords, ycoords).T[:, 0]
+
+        nangles = np.radians(90 + self.heading(x))  # The angles required for the normal vectors
+        normals = np.array([np.cos(nangles), np.sin(nangles)])[:, 0].T
+
+        pleft = pos - (basewidth / 2) * normals
+        pright = pos + (basewidth / 2) * normals
+        return pleft, pright
 
     def heading(self, t: NpCompatible):
         """

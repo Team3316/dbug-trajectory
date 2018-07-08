@@ -36,6 +36,20 @@ def setup_margins(height):
     ty = [height, height - 0.91]
     axes.plot(ty[0:2], tx[0:2], 'k-')
 
+def plot_headings(headings, resolution: int = 10):
+    lh = len(headings)
+    for i in range(int(lh / resolution)):
+        a = headings[resolution * i]
+        plot.arrow(
+            curve[resolution * i, 0],
+            curve[resolution * i, 1],
+            0.5 * cos(radians(a)),
+            0.5 * sin(radians(a)),
+            fc='b',
+            ec='b',
+            head_width=0.03,
+            length_includes_head=True
+        )
 
 if __name__ == '__main__':
     setup_plot(8.23, 8.21)
@@ -66,23 +80,13 @@ if __name__ == '__main__':
     bezier = Bezier(pts=pts, dts=dts, times=times)
     bezier.gen_constraints()
     bezier.gen_segments()
-    curve = bezier.curve(flip=True, basewidth=8.21)
+    curve = bezier.curve(0.7, basewidth=8.21)
 
-    axes.plot(curve[:, 0], curve[:, 1], 'green')
+    axes.plot(curve[:, 0], curve[:, 1], '#00ff00')
+    plot_headings(bezier.curve_heading)
 
-    lh = len(bezier.curve_heading)
-    for i in range(int(lh / 10)):
-        a = bezier.curve_heading[10 * i]
-        plot.arrow(
-            curve[10 * i, 0],
-            curve[10 * i, 1],
-            0.5 * cos(radians(a)),
-            0.5 * sin(radians(a)),
-            fc='b',
-            ec='b',
-            head_width=0.03,
-            length_includes_head=True
-        )
+    axes.plot(bezier.curve_robotl[:, 0], bezier.curve_robotl[:, 1], 'magenta')
+    axes.plot(bezier.curve_robotr[:, 0], bezier.curve_robotr[:, 1], 'magenta')
 
     fig.savefig('graph.png')
     bezier.write_to_file()
