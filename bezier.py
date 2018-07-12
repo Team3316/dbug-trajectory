@@ -30,29 +30,6 @@ class Bezier(object):
         self.curve_robotl: np.ndarray = None
         self.curve_robotr: np.ndarray = None
 
-    def flip(self, base_width):
-        """
-        Flip a given Bézier curve.
-        :return: The flipped curve coordinates
-        """
-        # TODO - Move this function to the Segment class
-
-        if self.curve_pos is None:
-            raise NotImplementedError('A curve is needed for it to be flipped.')
-        M = np.array([
-            [-1, 0],
-            [0, 1]
-        ])
-        C = np.array([
-            base_width * np.ones(Segment.NUM_OF_SAMPLES * self.num_of_segments),
-            np.zeros(Segment.NUM_OF_SAMPLES * self.num_of_segments)
-        ])
-        self.curve_pos = (np.dot(M, self.curve_pos.T) + C).T
-        self.curve_heading = 180 - self.curve_heading
-        self.curve_robotl = (np.dot(M, self.curve_robotl.T) + C).T
-        self.curve_robotr = (np.dot(M, self.curve_robotr.T) + C).T
-        return self.curve_pos
-
     def gen_constraints(self):
         """
         Makes an array of derivative information for each knot, giving the "Adobe handles effect" for the point planning.
@@ -90,15 +67,16 @@ class Bezier(object):
 
     def curve(self, robot_width: float, flip: bool = False, basewidth: float = None):
         """
-        Calculates the position, velocity and heading information for each point in the path.
-        :return: The curve position points run using np.linspace(0, 1, num=100). array<vec2>
         """
         if self.curve_segments is None:
             raise NotImplementedError('Segment array is required for generating the curve points.')
 
+        if flip:
+            self.curve_segments = [seg.flip(basewidth) for seg in self.curve_segments]
+
         curves = [seg.curve(1) for seg in self.curve_segments]
-        self.curve_pos = np.concatenate([pos for (pos, vel) in curves])
-        self.curve_vel = np.concatenate([vel for (pos, vel) in curves])
+        self.curve_pos = np.concatenate([pos for (pos, vel, acc) in curves])
+        self.curve_vel = np.concatenate([vel for (pos, vel, acc) in curves])
 
         t = Utils.linspace(0, 1, samples=Segment.NUM_OF_SAMPLES)
         self.curve_heading = np.concatenate([seg.heading(t).tolist()[0] for seg in self.curve_segments])
@@ -107,8 +85,6 @@ class Bezier(object):
         self.curve_robotl = np.concatenate([tup[0] for tup in robot_curves])
         self.curve_robotr = np.concatenate([tup[1] for tup in robot_curves])
 
-        if flip:
-            self.flip(basewidth)
 
         return self.curve_pos
 

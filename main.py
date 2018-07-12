@@ -9,9 +9,9 @@ fig = plot.figure(figsize=(15, 14.96), dpi=150)
 axes = plot.axes()
 
 
-def plota(points, origin, s):
+def plota(points, o, s):
     for p in points:
-        axes.plot(p[0] + origin[0], p[1] + origin[1], s)
+        axes.plot(p[0] + o[0], p[1] + o[1], s)
 
 
 def setup_plot(width, height):
@@ -19,9 +19,9 @@ def setup_plot(width, height):
     plot.xticks(fontsize=13, rotation=90)
     axes.set_xticks(np.arange(0, height, FEET_IN_METER))
 
-    plot.ylim(0, width)
+    plot.ylim(0, width + 3)
     plot.yticks(fontsize=13)
-    axes.set_yticks(np.arange(0, width, FEET_IN_METER))
+    axes.set_yticks(np.arange(0, width + 3, FEET_IN_METER))
 
     axes.grid(which='both')
 
@@ -39,8 +39,17 @@ def setup_margins(height):
 
 
 def setup_obstacles():
+    # Switch
     switch = Rectangle((2.165, 3.556), 3.89, 1.4224)
     axes.add_patch(switch)
+
+    # Scale
+    platform = Rectangle((2.41935, 6.6413), 3.2893, 4.5 * FEET_IN_METER, color='r')
+    axes.add_patch(platform)
+    scale_left = Rectangle((1.8179, 7.61), 3 * FEET_IN_METER, 4 * FEET_IN_METER, color='#00FF00')
+    axes.add_patch(scale_left)
+    scale_right = Rectangle((1.8179 + 12 * FEET_IN_METER, 7.61), 3 * FEET_IN_METER, 4 * FEET_IN_METER, color='#00FF00')
+    axes.add_patch(scale_right)
 
 
 def plot_headings(headings, resolution: int = 10):

@@ -1,4 +1,6 @@
 from utils import Utils, Point, NpCompatible
+from typing import Union
+from math import hypot
 import numpy as np
 
 
@@ -42,13 +44,6 @@ class Segment(object):
         self.pts = [start_point + origin, end_point + origin]
         self.dts = [start_der + origin, end_der + origin]
         self.times = [start_time, end_time]
-        self.control_points = np.array([
-            self.pts[0],
-            self.dts[0],
-            self.dts[1],
-            self.pts[1],
-            self.times
-        ])
 
     @classmethod
     def apply_to_curve(cls, vect, xs, ys):
@@ -58,19 +53,39 @@ class Segment(object):
             np.dot(ys, Bt)
         ])
 
-    def position(self, t, xs, ys):
+    def __position(self, t, xs, ys):
         """
         Returns the Bézier position polynomial result for t through the points specified using xs and ys.
         """
         vect = np.array([t ** 3, t ** 2, t, 1]).T
         return Segment.apply_to_curve(vect, xs, ys)
 
-    def velocity(self, t, xs, ys):
+    def __velocity(self, t, xs, ys):
         """
-        Returns the Bézier velocity polynomial result for t through the points specified using xs and ys.
+        Returns the Bézier velocity (1st derivative) polynomial result for t through the points specified using xs and ys.
         """
         vect = np.array([3 * t ** 2, 2 * t, 1, 0]).T
         return Segment.apply_to_curve(vect, xs, ys)
+
+    def __acceleration(self, t, xs, ys):
+        """
+        Returns the Bézier acceleration (2nd derivative) polynomial result for t through the points specified using xs and ys.
+        """
+        vect = np.array([6 * t, 2, 0, 0]).T
+        return Segment.apply_to_curve(vect, xs, ys)
+
+
+    def control_points(self):
+        """
+        Calculates the control vector needed for the curve generation.
+        """
+        return np.array([
+            self.pts[0],
+            self.dts[0],
+            self.dts[1],
+            self.pts[1],
+            self.times
+        ])
 
     def length(self, t: float = 1):
         """
@@ -79,13 +94,13 @@ class Segment(object):
         :return: The approximated value of the integral
         """
         n = Segment.L_NUM_OF_SAMPLES
-        _, dv = self.curve(t, n)
+        _, dv, _ = self.curve(t, n)
         ndv = np.array(dv)
         return Utils.length_integral(t, ndv, n)
 
     def curve(self, t: float, n: int = NUM_OF_SAMPLES):
         """
-        Calculates the position and velocity curve between 0 and t.
+        Calculates the position and position derivative curve between 0 and t.
         :param t: The end point of the segment.
         :param n: The number of samples to create of the curve.
         :return: Position and velocity values for the interval [0, t].
@@ -94,19 +109,22 @@ class Segment(object):
             raise AssertionError('t is not in range, should be between 0 and 1.')
 
         # Get the x and y coordinates
-        xcoords = self.control_points[0:4, 0]
-        ycoords = self.control_points[0:4, 1]
+        cp = self.control_points()
+        xcoords = cp[0:4, 0]
+        ycoords = cp[0:4, 1]
 
         # Run the functions!
         x = Utils.linspace(0, t, samples=n)
-        respos = self.position(x, xcoords, ycoords).T
+        respos = self.__position(x, xcoords, ycoords).T
         pos = respos[:, 0].tolist()
 
-        xvel = Utils.linspace(0, t, samples=n)
-        resvel = self.velocity(xvel, xcoords, ycoords).T
+        resvel = self.__velocity(x, xcoords, ycoords).T
         vel = resvel[:, 0].tolist()
 
-        return pos, vel
+        resacc = self.__acceleration(x, xcoords, ycoords).T
+        acc = resacc[:, 0].tolist()
+
+        return pos, vel, acc
 
     def robot_curve(self, t: float, basewidth: float, n: int = NUM_OF_SAMPLES):
         """
@@ -119,18 +137,44 @@ class Segment(object):
         if t < 0 or t > 1:
             raise AssertionError('t is not in range, should be between 0 and 1.')
 
-        xcoords = self.control_points[0:4, 0]
-        ycoords = self.control_points[0:4, 1]
+        cp = self.control_points()
+        xcoords = cp[0:4, 0]
+        ycoords = cp[0:4, 1]
 
         x = Utils.linspace(0, t, samples=n)
-        pos = self.position(x, xcoords, ycoords).T[:, 0]
+        pos = self.__position(x, xcoords, ycoords).T[:, 0]
+        vel = self.__velocity(x, xcoords, ycoords).T[:, 0]
 
         nangles = np.radians(90 + self.heading(x))  # The angles required for the normal vectors
         normals = np.array([np.cos(nangles), np.sin(nangles)])[:, 0].T
 
         pleft = pos - (basewidth / 2) * normals
         pright = pos + (basewidth / 2) * normals
+
         return pleft, pright
+
+    def flip(self, base_width: Union[float, int]):
+        """
+        Flip this segment, according to a base with width base_width.
+        :return: The flipped curve coordinates
+        """
+        lp = len(self.pts)
+        M = np.array([
+            [-1, 0],
+            [0, 1]
+        ])
+        C = np.array([
+            base_width * np.ones(lp),
+            np.zeros(lp)
+        ]).T
+
+        npts = (np.dot(np.array(self.pts), M) + C).tolist()
+        self.pts = [np.array(a) for a in npts]
+
+        ndts = (np.dot(np.array(self.dts), M) + C).tolist()
+        self.dts = [np.array(a) for a in ndts]
+
+        return self
 
     def heading(self, t: NpCompatible):
         """
@@ -139,7 +183,8 @@ class Segment(object):
         :param t: A single point in time or a number of points in time.
         :return: The heading angle in time/s t.
         """
-        xcoords = self.control_points[0:4, 0]
-        ycoords = self.control_points[0:4, 1]
-        dx, dy = self.velocity(t, xcoords, ycoords)
+        cp = self.control_points()
+        xcoords = cp[0:4, 0]
+        ycoords = cp[0:4, 1]
+        dx, dy = self.__velocity(t, xcoords, ycoords)
         return Utils.angle_from_slope(dx, dy)
