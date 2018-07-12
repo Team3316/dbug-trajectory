@@ -148,8 +148,8 @@ class Segment(object):
         nangles = np.radians(90 + self.heading(x))  # The angles required for the normal vectors
         normals = np.array([np.cos(nangles), np.sin(nangles)])[:, 0].T
 
-        pleft = pos - (basewidth / 2) * normals
-        pright = pos + (basewidth / 2) * normals
+        pleft = pos + (basewidth / 2) * normals
+        pright = pos - (basewidth / 2) * normals
 
         return pleft, pright
 
