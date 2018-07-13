@@ -19,9 +19,9 @@ def setup_plot(width, height):
     plot.xticks(fontsize=13, rotation=90)
     axes.set_xticks(np.arange(0, height, FEET_IN_METER))
 
-    plot.ylim(0, width + 3)
+    plot.ylim(0, width + 3 * FEET_IN_METER)
     plot.yticks(fontsize=13)
-    axes.set_yticks(np.arange(0, width + 3, FEET_IN_METER))
+    axes.set_yticks(np.arange(0, width + 3 * FEET_IN_METER, FEET_IN_METER))
 
     axes.grid(which='both')
 
@@ -52,7 +52,7 @@ def setup_obstacles():
     axes.add_patch(scale_right)
 
 
-def plot_headings(headings, resolution: int = 10):
+def plot_headings(curve, headings, resolution: int = 10):
     lh = len(headings)
     for i in range(int(lh / resolution)):
         a = headings[resolution * i]
@@ -92,20 +92,27 @@ if __name__ == '__main__':
     origin = [0.91 + robotwidth / 2, 0]
 
     bezier = Bezier(pts=pts, dts=dts, times=times)
+    scale_rr = Bezier.from_json('path1.json')
 
     bezier.origin = origin
-    plota(pts, origin, 'rx')
-    plota(dts, origin, 'bo')
-
     bezier.gen_constraints()
     bezier.gen_segments()
-    curve = bezier.curve(0.7, flip=True, basewidth=8.21)
 
-    axes.plot(curve[:, 0], curve[:, 1], '#00ff00')
-    plot_headings(bezier.curve_heading)
+    scale_rr.gen_constraints()
+    scale_rr.gen_segments()
+
+    curve1 = bezier.curve(0.7, flip=False, basewidth=8.21)
+    curve2 = scale_rr.curve(0.7, flip=True, basewidth=8.21)
+
+    axes.plot(curve1[:, 0], curve1[:, 1], '#00ff00')
+    axes.plot(curve2[:, 0], curve2[:, 1], '#00ff00')
+    plot_headings(curve1, bezier.curve_heading)
+    plot_headings(curve2, scale_rr.curve_heading)
 
     axes.plot(bezier.curve_robotl[:, 0], bezier.curve_robotl[:, 1], 'magenta')
     axes.plot(bezier.curve_robotr[:, 0], bezier.curve_robotr[:, 1], 'magenta')
+    axes.plot(scale_rr.curve_robotl[:, 0], scale_rr.curve_robotl[:, 1], 'magenta')
+    axes.plot(scale_rr.curve_robotr[:, 0], scale_rr.curve_robotr[:, 1], 'magenta')
 
     fig.savefig('graph.png')
     bezier.write_to_file()

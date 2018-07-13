@@ -2,6 +2,7 @@ from utils import Utils, PointList
 from typing import List, Tuple
 from segment import Segment
 from csv import DictWriter
+import json
 import numpy as np
 
 
@@ -29,6 +30,18 @@ class Bezier(object):
         self.curve_heading: np.ndarray = None
         self.curve_robotl: np.ndarray = None
         self.curve_robotr: np.ndarray = None
+
+    @classmethod
+    def from_json(cls, filename: str):
+        file = open(filename, 'r').read()
+        decoded = json.loads(file)
+        knots = decoded['knots']
+        pts = [knot['point'] for knot in knots]
+        dts = [knot['derivative'] for knot in knots]
+        times = [knot['time'] for knot in knots]
+        bez = cls(pts, dts, times)
+        bez.origin = np.array(decoded['origin']) + [decoded['robot-width'] / 2, 0]
+        return bez
 
     def gen_constraints(self):
         """
