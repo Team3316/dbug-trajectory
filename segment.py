@@ -1,6 +1,6 @@
 from utils import Utils, Point, NpCompatible
 from typing import Union
-from math import hypot
+from math import sin, cos, radians
 import numpy as np
 
 
@@ -13,7 +13,7 @@ class Segment(object):
     NUM_OF_SAMPLES = 100
 
     # Number of samples for length integral calculation
-    L_NUM_OF_SAMPLES = 75 * 1000
+    L_NUM_OF_SAMPLES = 600
 
     # Bezier basis matrix
     B = np.array([
@@ -74,7 +74,6 @@ class Segment(object):
         vect = np.array([6 * t, 2, 0, 0]).T
         return Segment.apply_to_curve(vect, xs, ys)
 
-
     def control_points(self):
         """
         Calculates the control vector needed for the curve generation.
@@ -89,14 +88,38 @@ class Segment(object):
 
     def length(self, t: float = 1):
         """
-        Computes the segment's length integral approximation using trapezoidal approximation at a point t.
+        Computes the segment's length integral approximation using Simpson's rule at a point t.
         :param t: The point to approximate around, 0 <= t <= 1
         :return: The approximated value of the integral
         """
         n = Segment.L_NUM_OF_SAMPLES
-        _, dv, _ = self.curve(t, n)
-        ndv = np.array(dv)
-        return Utils.length_integral(t, ndv, n)
+        cp = self.control_points()
+        xcoords = cp[0:4, 0]
+        ycoords = cp[0:4, 1]
+        return Utils.length_integral(t, lambda x: self.__velocity(x, xcoords, ycoords), n)
+
+    def robot_lengths(self, t: float, basewidth: float):
+        """
+        Computes the segment's length integral approximation for each side of the robot using Simpson's rule at a point t.
+        :param t: The point to approximate around, 0 <= t <= 1
+        :param basewidth: The width of the robot's chassis, measured from the center of the wheels.
+        :return: The approximated value of the integral for the left and right sides of the robot
+        """
+        n = Segment.L_NUM_OF_SAMPLES
+        cp = self.control_points()
+        xcoords = cp[0:4, 0]
+        ycoords = cp[0:4, 1]
+
+        dcos = lambda x: -(basewidth / 2) * cos(radians(self.heading(x)))
+        dsin = lambda x: -(basewidth / 2) * sin(radians(self.heading(x)))
+        dnormal = lambda x: np.array([dcos(x) * self.__dheading(x), dsin(x) * self.__dheading(x)])
+
+        dl = lambda x: self.__velocity(x, xcoords, ycoords) + dnormal(x)
+        dr = lambda x: self.__velocity(x, xcoords, ycoords) - dnormal(x)
+
+        leftdist = Utils.length_integral(t, dl, n)
+        rightdist = Utils.length_integral(t, dr, n)
+        return leftdist, rightdist
 
     def curve(self, t: float, n: int = NUM_OF_SAMPLES):
         """
@@ -130,7 +153,7 @@ class Segment(object):
         """
         Calculates the position curve for the robot's left and right sides between 0 and t.
         :param t: The end point of the segment.
-        :param basewidth: The width of the robot's chassis, measured from the half of the wheels.
+        :param basewidth: The width of the robot's chassis, measured from the center of the wheels.
         :param n: The number of samples to create of the curve.
         :return: Left and right position values for the interval [0, t].
         """
@@ -143,7 +166,6 @@ class Segment(object):
 
         x = Utils.linspace(0, t, samples=n)
         pos = self.__position(x, xcoords, ycoords).T[:, 0]
-        vel = self.__velocity(x, xcoords, ycoords).T[:, 0]
 
         nangles = np.radians(90 + self.heading(x))  # The angles required for the normal vectors
         normals = np.array([np.cos(nangles), np.sin(nangles)])[:, 0].T
@@ -188,3 +210,12 @@ class Segment(object):
         ycoords = cp[0:4, 1]
         dx, dy = self.__velocity(t, xcoords, ycoords)
         return Utils.angle_from_slope(dx, dy)
+
+    def __dheading(self, t: NpCompatible):
+        cp = self.control_points()
+        xcoords = cp[0:4, 0]
+        ycoords = cp[0:4, 1]
+        dx, dy = self.__velocity(t, xcoords, ycoords)
+        d2x, d2y = self.__acceleration(t, xcoords, ycoords)
+        return (d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2)
+

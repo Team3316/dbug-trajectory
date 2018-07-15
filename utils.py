@@ -1,11 +1,12 @@
+from typing import List, Tuple, Union, Callable, Any
 from math import atan2, degrees, hypot
-from typing import List, Tuple, Union
 import numpy as np
 
 # Type alias
 Point = Union[Tuple[float, float], List[int], List[float]]
 PointList = List[Point]
 NpCompatible = Union[float, List[float], np.float64, np.ndarray]
+
 
 class Utils(object):
     @staticmethod
@@ -26,18 +27,21 @@ class Utils(object):
             return np.arctan2(dy, dx) * 180 / np.pi
 
     @staticmethod
-    def length_integral(t: float, f: np.ndarray, n: int):
+    def length_integral(t: float, df: Callable[[float], Any], n: int):
         """
-        Calculates a segment's length using its derivative values from 0 to t.
+        Calculates a segment's length using its derivative.
         :param t: The point to approximate around, 0 <= t <= 1
-        :param f: The function's derivative values in the segment
+        :param df: The function's derivative, as a function.
         :param n: The number of samples in the given derivative array
-        :return: An approximated segment length, in the segment's units.
+        :return: An approximated segment length, in the segment's units, using Simpson's rule.
         """
-        midsum = np.sqrt(np.power(f[1:n, 0], 2) + np.power(f[1:n, 1], 2)).sum()
+        f0 = hypot(df(0)[0], df(0)[1])
+        fn = hypot(df(t)[0], df(t)[1])
 
-        d0 = hypot(f[0, 0], f[0, 1])
-        dn = hypot(f[-1, 0], f[-1, 1])
+        fs1 = np.array([df((t * 2 * k) / n) for k in range(1, int(n / 2))])
+        fs2 = np.array([df((t * (2 * k - 1)) / n) for k in range(1, int(n / 2) + 1)])
 
-        simpint = (t / n) * (d0 / 2 + midsum + dn / 2)
-        return round(simpint, 4)
+        sum1 = 2 * np.hypot(fs1[:, 0], fs1[:, 1]).sum()
+        sum2 = 4 * np.hypot(fs2[:, 0], fs2[:, 1]).sum()
+
+        return (t / (3 * n)) * (f0 + sum1 + sum2 + fn)

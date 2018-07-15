@@ -2,6 +2,7 @@ import matplotlib.pyplot as plot
 from matplotlib.patches import Rectangle
 import numpy as np
 from bezier import Bezier
+from robot import Robot
 from math import sin, cos, radians
 
 FEET_IN_METER = 0.3048
@@ -91,6 +92,10 @@ if __name__ == '__main__':
     robotwidth = 0.7
     origin = [0.91 + robotwidth / 2, 0]
 
+    mars = Robot.from_json("mars.json")
+    mars.load_path("path1.json")
+    paths = mars.gen_path()
+
     bezier = Bezier(pts=pts, dts=dts, times=times)
     scale_rr = Bezier.from_json('path1.json')
 
@@ -101,16 +106,16 @@ if __name__ == '__main__':
     scale_rr.gen_constraints()
     scale_rr.gen_segments()
 
-    curve1 = bezier.curve(0.7, flip=False, basewidth=8.21)
+    # curve1 = bezier.curve(0.7, flip=False, basewidth=8.21)
     curve2 = scale_rr.curve(0.7, flip=True, basewidth=8.21)
 
-    axes.plot(curve1[:, 0], curve1[:, 1], '#00ff00')
+    # axes.plot(curve1[:, 0], curve1[:, 1], '#00ff00')
     axes.plot(curve2[:, 0], curve2[:, 1], '#00ff00')
-    plot_headings(curve1, bezier.curve_heading)
+    # plot_headings(curve1, bezier.curve_heading)
     plot_headings(curve2, scale_rr.curve_heading)
 
-    axes.plot(bezier.curve_robotl[:, 0], bezier.curve_robotl[:, 1], 'magenta')
-    axes.plot(bezier.curve_robotr[:, 0], bezier.curve_robotr[:, 1], 'magenta')
+    # axes.plot(bezier.curve_robotl[:, 0], bezier.curve_robotl[:, 1], 'magenta')
+    # axes.plot(bezier.curve_robotr[:, 0], bezier.curve_robotr[:, 1], 'magenta')
     axes.plot(scale_rr.curve_robotl[:, 0], scale_rr.curve_robotl[:, 1], 'magenta')
     axes.plot(scale_rr.curve_robotr[:, 0], scale_rr.curve_robotr[:, 1], 'magenta')
 

@@ -7,7 +7,12 @@ import numpy as np
 
 
 class Bezier(object):
-    def __init__(self, pts: PointList, dts: PointList, times: List[float]):
+    def __init__(self,
+                 pts: PointList,
+                 dts: PointList,
+                 times: List[float],
+                 name: str = "untitled-path",
+                 desc: str = "This is an untitled path."):
         """
         :param pts: Knot array. array<vec2>
         :param dts: Array of derivative information for each knot, assuming
@@ -22,12 +27,15 @@ class Bezier(object):
         self.times = np.array(times)
         self.num_of_segments = len(pts) - 1
 
+        self.info = (name, desc)
+
         self.origin = [0, 0]
         self.complete_derivatives: np.ndarray = None
         self.curve_segments: List[Segment] = None
         self.curve_pos: np.ndarray = None
         self.curve_vel: np.ndarray = None
         self.curve_heading: np.ndarray = None
+
         self.curve_robotl: np.ndarray = None
         self.curve_robotr: np.ndarray = None
 
@@ -39,7 +47,7 @@ class Bezier(object):
         pts = [knot['point'] for knot in knots]
         dts = [knot['derivative'] for knot in knots]
         times = [knot['time'] for knot in knots]
-        bez = cls(pts, dts, times)
+        bez = cls(pts, dts, times, decoded['name'], decoded['description'])
         bez.origin = np.array(decoded['origin']) + [decoded['robot-width'] / 2, 0]
         return bez
 
@@ -80,6 +88,7 @@ class Bezier(object):
 
     def curve(self, robot_width: float, flip: bool = False, basewidth: float = None):
         """
+        Generates the robot curves, heading values and length values.
         """
         if self.curve_segments is None:
             raise NotImplementedError('Segment array is required for generating the curve points.')
@@ -98,32 +107,31 @@ class Bezier(object):
         self.curve_robotl = np.concatenate([tup[0] for tup in robot_curves])
         self.curve_robotr = np.concatenate([tup[1] for tup in robot_curves])
 
-
         return self.curve_pos
 
-    def write_to_file(self, filename: str = 'curveinfo.csv'):
+    def write_to_file(self, filename: str = None):
         """
         Writes the curve points to a CSV file.
         :param filename: The wanted filename for the file. Default - curveinfo.csv
         """
+        filename = self.info[0] + '.csv' if filename is None else filename
         with open(filename, 'w', newline='') as csvfile:
             fields = ['time', 'x', 'y', 'dx', 'dy', 'heading']
             writer = DictWriter(csvfile, fieldnames=fields)
             writer.writeheader()
+
             for i in range(self.num_of_segments):
                 seg = self.curve_segments[i]
                 t0, t1 = seg.times
                 t = Utils.linspace(t0, t1, samples=Segment.NUM_OF_SAMPLES)[0]
                 rangestart = (0 if i == 0 else 1)
-                writer.writerows([
-                    {
+                for k in range(rangestart, Segment.NUM_OF_SAMPLES):
+                    writer.writerow({
                         'time': t[k],
                         'x': self.curve_pos[100 * i + k, 0],
                         'y': self.curve_pos[100 * i + k, 1],
                         'dx': self.curve_vel[100 * i + k, 0],
                         'dy': self.curve_vel[100 * i + k, 1],
                         'heading': 90 - self.curve_heading[100 * i + k]
-                    }
-                    for k in range(rangestart, Segment.NUM_OF_SAMPLES)
-                ])
+                    })
 
