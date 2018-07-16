@@ -38,6 +38,8 @@ class Bezier(object):
 
         self.curve_robotl: np.ndarray = None
         self.curve_robotr: np.ndarray = None
+        self.curve_robotdist_left: np.ndarray = None
+        self.curve_robotdist_right: np.ndarray = None
 
     @classmethod
     def from_json(cls, filename: str):
@@ -107,6 +109,21 @@ class Bezier(object):
         self.curve_robotl = np.concatenate([tup[0] for tup in robot_curves])
         self.curve_robotr = np.concatenate([tup[1] for tup in robot_curves])
 
+        seg_lengths = [
+            np.array(self.curve_segments[i - 1].robot_lengths(robot_width)) if i > 0 else np.zeros((1, 2))[0]
+            for i in range(self.num_of_segments)
+        ]
+        parts_lengths = [
+            np.array([
+                seg_lengths[i] + seg.robot_lengths(robot_width, 0, t[0][k])
+                for k in range(Segment.NUM_OF_SAMPLES)
+            ])
+            for (i, seg) in enumerate(self.curve_segments)
+        ]
+
+        self.curve_robotdist_left = np.concatenate([dists[:, 0] for dists in parts_lengths])
+        self.curve_robotdist_right = np.concatenate([dists[:, 1] for dists in parts_lengths])
+
         return self.curve_pos
 
     def write_to_file(self, filename: str = None):
@@ -116,7 +133,7 @@ class Bezier(object):
         """
         filename = self.info[0] + '.csv' if filename is None else filename
         with open(filename, 'w', newline='') as csvfile:
-            fields = ['time', 'x', 'y', 'dx', 'dy', 'heading']
+            fields = ['time', 'x', 'y', 'dx', 'dy', 'heading', 'leftdist', 'rightdist']
             writer = DictWriter(csvfile, fieldnames=fields)
             writer.writeheader()
 
@@ -132,6 +149,8 @@ class Bezier(object):
                         'y': self.curve_pos[100 * i + k, 1],
                         'dx': self.curve_vel[100 * i + k, 0],
                         'dy': self.curve_vel[100 * i + k, 1],
-                        'heading': 90 - self.curve_heading[100 * i + k]
+                        'heading': 90 - self.curve_heading[100 * i + k],
+                        'leftdist': self.curve_robotdist_left[100 * i + k],
+                        'rightdist': self.curve_robotdist_left[100 * i + k]
                     })
 

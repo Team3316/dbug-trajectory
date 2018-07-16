@@ -10,9 +10,9 @@ class Segment(object):
     """
 
     # Number of samples for every picewise Bézier curve
-    NUM_OF_SAMPLES = 100
+    NUM_OF_SAMPLES = 101
 
-    # Number of samples for length integral calculation
+    # Number of samples for full segment length integral calculation
     L_NUM_OF_SAMPLES = 600
 
     # Bezier basis matrix
@@ -86,26 +86,28 @@ class Segment(object):
             self.times
         ])
 
-    def length(self, t: float = 1):
+    def length(self, t0: float = 0, t1: float = 1):
         """
         Computes the segment's length integral approximation using Simpson's rule at a point t.
-        :param t: The point to approximate around, 0 <= t <= 1
+        :param t0: The lower bound of the integral, 0 <= t0 <= 1
+        :param t1: The upper bound of the integral, 0 <= t0 <= 1
         :return: The approximated value of the integral
         """
         n = Segment.L_NUM_OF_SAMPLES
         cp = self.control_points()
         xcoords = cp[0:4, 0]
         ycoords = cp[0:4, 1]
-        return Utils.length_integral(t, lambda x: self.__velocity(x, xcoords, ycoords), n)
+        return Utils.length_integral(t0, t1, lambda x: self.__velocity(x, xcoords, ycoords), n)
 
-    def robot_lengths(self, t: float, basewidth: float):
+    def robot_lengths(self, basewidth: float, t0: float = 0, t1: float = 1, n: int = L_NUM_OF_SAMPLES):
         """
         Computes the segment's length integral approximation for each side of the robot using Simpson's rule at a point t.
-        :param t: The point to approximate around, 0 <= t <= 1
+        :param t0: The lower bound of the integral, 0 <= t0 <= 1
+        :param t1: The upper bound of the integral, 0 <= t0 <= 1
         :param basewidth: The width of the robot's chassis, measured from the center of the wheels.
+        :param n: The number of samples to create of the interval's partition.
         :return: The approximated value of the integral for the left and right sides of the robot
         """
-        n = Segment.L_NUM_OF_SAMPLES
         cp = self.control_points()
         xcoords = cp[0:4, 0]
         ycoords = cp[0:4, 1]
@@ -117,8 +119,8 @@ class Segment(object):
         dl = lambda x: self.__velocity(x, xcoords, ycoords) + dnormal(x)
         dr = lambda x: self.__velocity(x, xcoords, ycoords) - dnormal(x)
 
-        leftdist = Utils.length_integral(t, dl, n)
-        rightdist = Utils.length_integral(t, dr, n)
+        leftdist = Utils.length_integral(t0, t1, dl, n)
+        rightdist = Utils.length_integral(t0, t1, dr, n)
         return leftdist, rightdist
 
     def curve(self, t: float, n: int = NUM_OF_SAMPLES):

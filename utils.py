@@ -27,21 +27,25 @@ class Utils(object):
             return np.arctan2(dy, dx) * 180 / np.pi
 
     @staticmethod
-    def length_integral(t: float, df: Callable[[float], Any], n: int):
+    def length_integral(t0: float, t1: float, df: Callable[[float], Any], n: int):
         """
-        Calculates a segment's length using its derivative.
-        :param t: The point to approximate around, 0 <= t <= 1
+        Calculates a segment's length using its derivative, from t0 to t1.
+        The intergal is:
+          I_t0^t1 sqrt((df_x(t))^2 + (df_y(t))^2)dt
+        :param t0: The lower bound of the integral, 0 <= t0 <= 1
+        :param t1: The upper bound of the integral, 0 <= t0 <= 1
         :param df: The function's derivative, as a function.
         :param n: The number of samples in the given derivative array
         :return: An approximated segment length, in the segment's units, using Simpson's rule.
         """
-        f0 = hypot(df(0)[0], df(0)[1])
-        fn = hypot(df(t)[0], df(t)[1])
+        dx = t1 - t0
+        f0 = hypot(df(t0)[0], df(t0)[1])
+        fn = hypot(df(t1)[0], df(t1)[1])
 
-        fs1 = np.array([df((t * 2 * k) / n) for k in range(1, int(n / 2))])
-        fs2 = np.array([df((t * (2 * k - 1)) / n) for k in range(1, int(n / 2) + 1)])
+        fs1 = np.array([df((t0 + (dx * 2 * k)) / n) for k in range(1, int(n / 2))])
+        fs2 = np.array([df((t0 + (dx * (2 * k - 1))) / n) for k in range(1, int(n / 2) + 1)])
 
         sum1 = 2 * np.hypot(fs1[:, 0], fs1[:, 1]).sum()
         sum2 = 4 * np.hypot(fs2[:, 0], fs2[:, 1]).sum()
 
-        return (t / (3 * n)) * (f0 + sum1 + sum2 + fn)
+        return (dx / (3 * n)) * (f0 + sum1 + sum2 + fn)

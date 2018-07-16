@@ -94,7 +94,6 @@ if __name__ == '__main__':
 
     mars = Robot.from_json("mars.json")
     mars.load_path("path1.json")
-    paths = mars.gen_path()
 
     bezier = Bezier(pts=pts, dts=dts, times=times)
     scale_rr = Bezier.from_json('path1.json')
@@ -107,7 +106,7 @@ if __name__ == '__main__':
     scale_rr.gen_segments()
 
     # curve1 = bezier.curve(0.7, flip=False, basewidth=8.21)
-    curve2 = scale_rr.curve(0.7, flip=True, basewidth=8.21)
+    curve2 = scale_rr.curve(0.7)
 
     # axes.plot(curve1[:, 0], curve1[:, 1], '#00ff00')
     axes.plot(curve2[:, 0], curve2[:, 1], '#00ff00')
@@ -120,4 +119,4 @@ if __name__ == '__main__':
     axes.plot(scale_rr.curve_robotr[:, 0], scale_rr.curve_robotr[:, 1], 'magenta')
 
     fig.savefig('graph.png')
-    bezier.write_to_file()
+    scale_rr.write_to_file()
