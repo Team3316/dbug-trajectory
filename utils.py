@@ -1,5 +1,5 @@
 from typing import List, Tuple, Union, Callable, Any
-from math import atan2, degrees, hypot
+from math import atan2, degrees, hypot, radians, cos, sin
 import numpy as np
 
 # Type alias
@@ -24,7 +24,7 @@ class Utils(object):
             angle = degrees(atan2(dy, dx))
             return 90 - angle if angle >= 90 else angle
         if type(dx) is np.ndarray or type(dx) is List[float]:
-            return np.arctan2(dy, dx) * 180 / np.pi
+            return np.degrees(np.arctan2(dy, dx))
 
     @staticmethod
     def length_integral(t0: float, t1: float, df: Callable[[float], Any], n: int):
@@ -49,3 +49,22 @@ class Utils(object):
         sum2 = 4 * np.hypot(fs2[:, 0], fs2[:, 1]).sum()
 
         return (dx / (3 * n)) * (f0 + sum1 + sum2 + fn)
+
+    @staticmethod
+    def dts_for_heading(start_point: Point, end_point: Point, start_heading: float, end_heading: float):
+        """
+        Calculates a segment's start and end derivative vectors using it's start and end headings.
+        :param start_point: The starting knot of the segment
+        :param end_point: The end knot of the segment
+        :param start_heading: The starting robot angle of the segment
+        :param end_heading: The end robot angle of the segment
+        :return: A tuple consisting of start derivative and end derivative.
+        """
+        start_radian = radians(90 + start_heading)
+        end_radian = radians(90 + end_heading)
+
+        scale = 0.65
+        start_der = start_point + np.array([cos(start_radian), sin(start_radian)]) * scale
+        end_der = end_point - np.array([cos(end_radian), sin(end_radian)]) * scale
+
+        return start_der, end_der

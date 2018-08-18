@@ -157,7 +157,7 @@ class Segment(object):
         :param t: The end point of the segment.
         :param basewidth: The width of the robot's chassis, measured from the center of the wheels.
         :param n: The number of samples to create of the curve.
-        :return: Left and right position values for the interval [0, t].
+        :return: Left position, right position, left velocity and right velocity values for the interval [0, t].
         """
         if t < 0 or t > 1:
             raise AssertionError('t is not in range, should be between 0 and 1.')
@@ -168,14 +168,22 @@ class Segment(object):
 
         x = Utils.linspace(0, t, samples=n)
         pos = self.__position(x, xcoords, ycoords).T[:, 0]
+        vel = self.__velocity(x, xcoords, ycoords).T[:, 0]
 
         nangles = np.radians(90 + self.heading(x))  # The angles required for the normal vectors
         normals = np.array([np.cos(nangles), np.sin(nangles)])[:, 0].T
+        dnormals = (np.array([-np.sin(nangles), np.cos(nangles)])[:, 0] * self.__dheading(x)).T
 
         pleft = pos + (basewidth / 2) * normals
         pright = pos - (basewidth / 2) * normals
 
-        return pleft, pright
+        resvleft = vel + (basewidth / 2) * dnormals
+        resvright = vel - (basewidth / 2) * dnormals
+
+        vleft = np.hypot(resvleft[:, 0], resvleft[:, 1])
+        vright = np.hypot(resvright[:, 0], resvright[:, 1])
+
+        return pleft, pright, vleft, vright
 
     def flip(self, base_width: Union[float, int]):
         """
