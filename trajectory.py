@@ -1,3 +1,4 @@
+from bezier import SplineType
 from utils import Utils, PointList
 from typing import List
 from segment import Segment
@@ -11,6 +12,7 @@ class Path(object):
                  pts: PointList,
                  headings: List[float],
                  times: List[float],
+                 spline_type: SplineType = SplineType.CUBIC,
                  name: str = "untitled-path",
                  desc: str = "This is an untitled path."):
         """
@@ -23,6 +25,7 @@ class Path(object):
         self.headings = np.array(headings)
         self.times = np.array(times)
         self.num_of_segments = len(pts) - 1
+        self.spline_type = spline_type
 
         self.info = (name, desc)
 
@@ -48,7 +51,8 @@ class Path(object):
         pts = [knot['point'] for knot in knots]
         headings = [knot['heading'] for knot in knots]
         times = [knot['time'] for knot in knots]
-        bez = cls(pts, headings, times, decoded['name'], decoded['description'])
+        spline_type = SplineType.QUINTIC if decoded['quintic'] else SplineType.CUBIC
+        bez = cls(pts, headings, times, spline_type, decoded['name'], decoded['description'])
         bez.origin = np.array(decoded['origin']) + [decoded['robot-width'] / 2, 0]
         return bez
 
@@ -77,7 +81,8 @@ class Path(object):
                 end_der=self.complete_derivatives[2 * k + 1],
                 start_time=self.times[k],
                 end_time=self.times[k + 1],
-                origin=self.origin
+                origin=self.origin,
+                spline_type=self.spline_type
             )
             for k in range(self.num_of_segments)
         ]
