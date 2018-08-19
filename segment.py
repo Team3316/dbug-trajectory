@@ -1,3 +1,4 @@
+from bezier import Bezier, CurveType, SplineType
 from utils import Utils, Point, NpCompatible
 from typing import Union
 from math import sin, cos, radians
@@ -6,7 +7,7 @@ import numpy as np
 
 class Segment(object):
     """
-    A class corresponding for making a single cubic Bézier curve segment.
+    A class corresponding for making a single cubic / quintic Bézier curve segment.
     """
 
     # Number of samples for every picewise Bézier curve
@@ -15,14 +16,6 @@ class Segment(object):
     # Number of samples for full segment length integral calculation
     L_NUM_OF_SAMPLES = 600
 
-    # Bezier basis matrix
-    B = np.array([
-        [-1, 3, -3, 1],
-        [3, -6, 3, 0],
-        [-3, 3, 0, 0],
-        [1, 0, 0, 0]
-    ])
-
     def __init__(self,
                  start_point: Point = [0, 0],
                  end_point: Point = [0, 0],
@@ -30,7 +23,8 @@ class Segment(object):
                  end_der: Point = [0, 0],
                  start_time: float = 0,
                  end_time: float = 0,
-                 origin: Point = [0, 0]):
+                 origin: Point = [0, 0],
+                 spline_type: SplineType = SplineType.CUBIC):
         """
         Initializes a new cubic Bézier segment with the given paramters.
         :param start_point: The starting point of the segment.
@@ -44,47 +38,21 @@ class Segment(object):
         self.pts = [start_point + origin, end_point + origin]
         self.dts = [start_der + origin, end_der + origin]
         self.times = [start_time, end_time]
-
-    @classmethod
-    def apply_to_curve(cls, vect, xs, ys):
-        Bt = np.dot(cls.B, vect)
-        return np.array([
-            np.dot(xs, Bt),
-            np.dot(ys, Bt)
-        ])
-
-    def __position(self, t, xs, ys):
-        """
-        Returns the Bézier position polynomial result for t through the points specified using xs and ys.
-        """
-        vect = np.array([t ** 3, t ** 2, t, 1]).T
-        return Segment.apply_to_curve(vect, xs, ys)
-
-    def __velocity(self, t, xs, ys):
-        """
-        Returns the Bézier velocity (1st derivative) polynomial result for t through the points specified using xs and ys.
-        """
-        vect = np.array([3 * t ** 2, 2 * t, 1, 0]).T
-        return Segment.apply_to_curve(vect, xs, ys)
-
-    def __acceleration(self, t, xs, ys):
-        """
-        Returns the Bézier acceleration (2nd derivative) polynomial result for t through the points specified using xs and ys.
-        """
-        vect = np.array([6 * t, 2, 0, 0]).T
-        return Segment.apply_to_curve(vect, xs, ys)
+        self.spline_type = spline_type
 
     def control_points(self):
         """
         Calculates the control vector needed for the curve generation.
         """
-        return np.array([
-            self.pts[0],
-            self.dts[0],
-            self.dts[1],
-            self.pts[1],
-            self.times
-        ])
+        p0, p1 = self.pts
+        dp0, dp1 = self.dts
+        zero = np.array([0, 0])
+
+        cubic_cp = [p0, dp0, dp1, p1, self.times]
+        quintic_cp = [p0, dp0, zero, p1, dp1, zero, self.times]
+
+        cp = cubic_cp if self.spline_type != SplineType.QUINTIC else quintic_cp
+        return np.array(cp)
 
     def length(self, t0: float = 0, t1: float = 1):
         """
@@ -95,9 +63,11 @@ class Segment(object):
         """
         n = Segment.L_NUM_OF_SAMPLES
         cp = self.control_points()
-        xcoords = cp[0:4, 0]
-        ycoords = cp[0:4, 1]
-        return Utils.length_integral(t0, t1, lambda x: self.__velocity(x, xcoords, ycoords), n)
+        xcoords = cp[0:-1, 0]
+        ycoords = cp[0:-1, 1]
+        curve = lambda x: Bezier.curve(x, xcoords, ycoords, CurveType.VELOCITY, self.spline_type)
+
+        return Utils.length_integral(t0, t1, curve, n)
 
     def robot_lengths(self, basewidth: float, t0: float = 0, t1: float = 1, n: int = L_NUM_OF_SAMPLES):
         """
@@ -109,15 +79,16 @@ class Segment(object):
         :return: The approximated value of the integral for the left and right sides of the robot
         """
         cp = self.control_points()
-        xcoords = cp[0:4, 0]
-        ycoords = cp[0:4, 1]
+        xcoords = cp[0:-1, 0]
+        ycoords = cp[0:-1, 1]
 
         dcos = lambda x: -(basewidth / 2) * cos(radians(self.heading(x)))
         dsin = lambda x: -(basewidth / 2) * sin(radians(self.heading(x)))
         dnormal = lambda x: np.array([dcos(x) * self.__dheading(x), dsin(x) * self.__dheading(x)])
 
-        dl = lambda x: self.__velocity(x, xcoords, ycoords) + dnormal(x)
-        dr = lambda x: self.__velocity(x, xcoords, ycoords) - dnormal(x)
+        vel = lambda x: Bezier.curve(x, xcoords, ycoords, CurveType.VELOCITY, self.spline_type)
+        dl = lambda x: vel(x) + dnormal(x)
+        dr = lambda x: vel(x) - dnormal(x)
 
         leftdist = Utils.length_integral(t0, t1, dl, n)
         rightdist = Utils.length_integral(t0, t1, dr, n)
@@ -135,18 +106,18 @@ class Segment(object):
 
         # Get the x and y coordinates
         cp = self.control_points()
-        xcoords = cp[0:4, 0]
-        ycoords = cp[0:4, 1]
+        xcoords = cp[0:-1, 0]
+        ycoords = cp[0:-1, 1]
 
         # Run the functions!
         x = Utils.linspace(0, t, samples=n)
-        respos = self.__position(x, xcoords, ycoords).T
+        respos = Bezier.curve(x, xcoords, ycoords, CurveType.POSITION, self.spline_type).T
         pos = respos[:, 0].tolist()
 
-        resvel = self.__velocity(x, xcoords, ycoords).T
+        resvel = Bezier.curve(x, xcoords, ycoords, CurveType.VELOCITY, self.spline_type).T
         vel = resvel[:, 0].tolist()
 
-        resacc = self.__acceleration(x, xcoords, ycoords).T
+        resacc = Bezier.curve(x, xcoords, ycoords, CurveType.ACCELERATION, self.spline_type).T
         acc = resacc[:, 0].tolist()
 
         return pos, vel, acc
@@ -163,12 +134,12 @@ class Segment(object):
             raise AssertionError('t is not in range, should be between 0 and 1.')
 
         cp = self.control_points()
-        xcoords = cp[0:4, 0]
-        ycoords = cp[0:4, 1]
+        xcoords = cp[0:-1, 0]
+        ycoords = cp[0:-1, 1]
 
         x = Utils.linspace(0, t, samples=n)
-        pos = self.__position(x, xcoords, ycoords).T[:, 0]
-        vel = self.__velocity(x, xcoords, ycoords).T[:, 0]
+        pos = Bezier.curve(x, xcoords, ycoords, CurveType.POSITION, self.spline_type).T[:, 0]
+        vel = Bezier.curve(x, xcoords, ycoords, CurveType.VELOCITY, self.spline_type).T[:, 0]
 
         nangles = np.radians(90 + self.heading(x))  # The angles required for the normal vectors
         normals = np.array([np.cos(nangles), np.sin(nangles)])[:, 0].T
@@ -216,16 +187,16 @@ class Segment(object):
         :return: The heading angle in time/s t.
         """
         cp = self.control_points()
-        xcoords = cp[0:4, 0]
-        ycoords = cp[0:4, 1]
-        dx, dy = self.__velocity(t, xcoords, ycoords)
+        xcoords = cp[0:-1, 0]
+        ycoords = cp[0:-1, 1]
+        dx, dy = Bezier.curve(t, xcoords, ycoords, CurveType.VELOCITY, self.spline_type)
         return Utils.angle_from_slope(dx, dy)
 
     def __dheading(self, t: NpCompatible):
         cp = self.control_points()
-        xcoords = cp[0:4, 0]
-        ycoords = cp[0:4, 1]
-        dx, dy = self.__velocity(t, xcoords, ycoords)
-        d2x, d2y = self.__acceleration(t, xcoords, ycoords)
+        xcoords = cp[0:-1, 0]
+        ycoords = cp[0:-1, 1]
+        dx, dy = Bezier.curve(t, xcoords, ycoords, CurveType.VELOCITY, self.spline_type)
+        d2x, d2y = Bezier.curve(t, xcoords, ycoords, CurveType.ACCELERATION, self.spline_type)
         return (d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2)
 

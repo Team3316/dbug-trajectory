@@ -1,5 +1,5 @@
 from typing import Dict, Union, List
-from bezier import Bezier
+from trajectory import Path
 from numpy import ndarray
 from math import inf
 import json
@@ -8,7 +8,7 @@ import json
 class Robot(object):
     """
     This class keeps information about a given robot, in order to generate paths and trajectories based on the robot's
-    specifications. It can also generate these paths using the Bézier-based implementation, specified in `bezier.py`.
+    specifications. It can also generate these paths using the Bézier-based implementation, specified in `trajectory.py`.
     IMPORTANT - This profiling is currently only suited for transmissions with one kind of motor.
     """
 
@@ -35,7 +35,7 @@ class Robot(object):
         """
         self.robot_info = (name, year, mass, base_width)
         self.chassis_info = (free_speed, stall_torque, gear_ratio, wheel_radius)
-        self.paths: Dict[str, Bezier] = {}
+        self.paths: Dict[str, Path] = {}
 
     @classmethod
     def from_json(cls, filename: str = 'robot.json'):
@@ -74,7 +74,7 @@ class Robot(object):
         Loads a curve into the robot's profile.
         :param filename: The filename with the curve data.
         """
-        bez = Bezier.from_json(filename)
+        bez = Path.from_json(filename)
         path_name = bez.info[0]
         self.paths[path_name] = bez
 
