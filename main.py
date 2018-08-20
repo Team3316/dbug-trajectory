@@ -1,18 +1,14 @@
 import matplotlib.pyplot as plot
 from matplotlib.patches import Rectangle
 import numpy as np
-from bezier import Bezier
 from robot import Robot
-from segment import Segment
-from utils import Utils
+from trajectory import Path
 from math import sin, cos, radians
 
 FEET_IN_METER = 0.3048
 fig = plot.figure(figsize=(15, 14.96), dpi=150)
 axes = plot.axes()
 
-fig2 = plot.figure(figsize=(15, 14.96), dpi=150)
-axes2 = plot.axes()
 
 def plota(points, o, s):
     for p in points:
@@ -29,16 +25,6 @@ def setup_plot(width, height):
     axes.set_yticks(np.arange(0, width + 3 * FEET_IN_METER, FEET_IN_METER))
 
     axes.grid(which='both')
-
-    plot.xlim(0, 1)
-    plot.xticks(fontsize=13, rotation=90)
-    axes2.set_xticks(np.arange(0, 1, 0.01))
-
-    plot.ylim(0, width)
-    plot.yticks(fontsize=13)
-    axes2.set_yticks(np.arange(0, width, 0.1))
-
-    axes2.grid(which='both')
 
 
 def setup_margins(height):
@@ -94,7 +80,7 @@ if __name__ == '__main__':
     mars = Robot.from_json("mars.json")
     mars.load_path("path1.json")
 
-    scale_rr = Bezier.from_json('path1.json')
+    scale_rr = Path.from_json('path1.json')
     scale_rr.gen_constraints()
     scale_rr.gen_segments()
 
@@ -109,9 +95,5 @@ if __name__ == '__main__':
     axes.plot(scale_rr.curve_robotl[:, 0], scale_rr.curve_robotl[:, 1], 'magenta')
     axes.plot(scale_rr.curve_robotr[:, 0], scale_rr.curve_robotr[:, 1], 'magenta')
 
-    axes2.plot(Utils.linspace(0, 1, Segment.NUM_OF_SAMPLES * scale_rr.num_of_segments).T, scale_rr.curve_robotvleft, 'magenta')
-    axes2.plot(Utils.linspace(0, 1, Segment.NUM_OF_SAMPLES * scale_rr.num_of_segments).T, scale_rr.curve_robotvright, 'blue')
-
     fig.savefig('graph.png')
-    fig2.savefig('velocities.png')
-    scale_rr.write_to_file()
+    # scale_rr.write_to_file()

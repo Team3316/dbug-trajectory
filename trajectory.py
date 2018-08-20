@@ -61,7 +61,13 @@ class Path(object):
         Makes an array of derivative information for each knot, giving the "Adobe handles effect" for the point planning.
         """
         derivatives = list(sum([
-            Utils.dts_for_heading(self.pts[i], self.pts[i + 1], self.headings[i], self.headings[i + 1])
+            Utils.dts_for_heading(
+                self.pts[i],
+                self.pts[i + 1],
+                self.headings[i],
+                self.headings[i + 1],
+                self.spline_type
+            )
             for i in range(self.num_of_segments)
         ], ()))
 
@@ -77,8 +83,10 @@ class Path(object):
             Segment(
                 start_point=self.pts[k],
                 end_point=self.pts[k + 1],
-                start_der=self.complete_derivatives[2 * k],
-                end_der=self.complete_derivatives[2 * k + 1],
+                start_der=self.complete_derivatives[4 * k],
+                end_der=self.complete_derivatives[4 * k + 1],
+                start_second_der=self.complete_derivatives[4 * k + 2],
+                end_second_der=self.complete_derivatives[4 * k + 3],
                 start_time=self.times[k],
                 end_time=self.times[k + 1],
                 origin=self.origin,

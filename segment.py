@@ -21,6 +21,8 @@ class Segment(object):
                  end_point: Point = [0, 0],
                  start_der: Point = [0, 0],
                  end_der: Point = [0, 0],
+                 start_second_der: Point = [0, 0],
+                 end_second_der: Point = [0, 0],
                  start_time: float = 0,
                  end_time: float = 0,
                  origin: Point = [0, 0],
@@ -31,12 +33,15 @@ class Segment(object):
         :param end_point: The goal point of the segment.
         :param start_der: The derivative vector corresponding to the start point.
         :param end_der: The derivative vector corresponding to the goal point.
+        :param start_second_der: The second derivative vector corresponding to the starting point.
+        :param end_second_der: The second derivative vector corresponding to the goal point.
         :param start_time: The starting time of the segment.
         :param end_time: The end time of the segment.
         :param origin: A custom origin point for the path th begin from. Default - (0, 0).
         """
         self.pts = [start_point + origin, end_point + origin]
-        self.dts = [start_der + origin, end_der + origin]
+        self.dts = [start_der + origin, end_der + origin] if spline_type != SplineType.QUINTIC else [start_der, end_der]
+        self.d2ts = [start_second_der, end_second_der]
         self.times = [start_time, end_time]
         self.spline_type = spline_type
 
@@ -46,10 +51,10 @@ class Segment(object):
         """
         p0, p1 = self.pts
         dp0, dp1 = self.dts
-        zero = np.array([0, 0])
+        ddp0, ddp1 = self.d2ts
 
         cubic_cp = [p0, dp0, dp1, p1, self.times]
-        quintic_cp = [p0, dp0, zero, p1, dp1, zero, self.times]
+        quintic_cp = [p0, dp0, ddp0, p1, dp1, ddp1, self.times]
 
         cp = cubic_cp if self.spline_type != SplineType.QUINTIC else quintic_cp
         return np.array(cp)

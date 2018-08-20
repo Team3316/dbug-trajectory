@@ -1,11 +1,21 @@
 from typing import List, Tuple, Union, Callable, Any
-from math import atan2, degrees, hypot, radians, cos, sin
+from math import atan2, degrees, hypot, radians, cos, sin, fabs
+from enum import Enum
 import numpy as np
 
 # Type alias
+from bezier import SplineType
+
 Point = Union[Tuple[float, float], List[int], List[float]]
 PointList = List[Point]
 NpCompatible = Union[float, List[float], np.float64, np.ndarray]
+
+
+class Direction(Enum):
+    LEFT = 1
+    RIGHT = 2
+    UP = 3
+    DOWN = 4
 
 
 class Utils(object):
@@ -51,7 +61,7 @@ class Utils(object):
         return (dx / (3 * n)) * (f0 + sum1 + sum2 + fn)
 
     @staticmethod
-    def dts_for_heading(start_point: Point, end_point: Point, start_heading: float, end_heading: float):
+    def dts_for_heading(start_point: Point, end_point: Point, start_heading: float, end_heading: float, spline_type: SplineType):
         """
         Calculates a segment's start and end derivative vectors using it's start and end headings.
         :param start_point: The starting knot of the segment
@@ -60,11 +70,38 @@ class Utils(object):
         :param end_heading: The end robot angle of the segment
         :return: A tuple consisting of start derivative and end derivative.
         """
-        start_radian = radians(90 + start_heading)
-        end_radian = radians(90 + end_heading)
+        start_radian = radians(start_heading)
+        end_radian = radians(end_heading)
 
-        scale = 0.65
-        start_der = start_point + np.array([cos(start_radian), sin(start_radian)]) * scale
-        end_der = end_point - np.array([cos(end_radian), sin(end_radian)]) * scale
+        scale = 1 if spline_type == SplineType.QUINTIC else 0.65
+        start_der = start_point + np.array([-sin(start_radian), cos(start_radian)]) * scale
+        end_der = end_point - np.array([-sin(end_radian), cos(end_radian)]) * scale
 
-        return start_der, end_der
+        scale2 = 1.5
+        hdir, _ = Utils.direction(start_point, end_point)
+        coeff = scale2 if hdir == Direction.LEFT else -scale2
+        start_2nd_der = start_point + coeff * np.array([cos(start_radian), sin(start_radian)])
+        end_2nd_der = end_point - coeff * np.array([cos(end_radian), sin(end_radian)])
+
+        return start_der, end_der, start_2nd_der, end_2nd_der
+
+    @staticmethod
+    def direction(start_point: Point, end_point: Point):
+        """
+        Returns the horizontal and vertical direction of the end point from the start point.
+        This is the general direction the robot will go to on the field in this segment.
+        :param start_point: The starting knot of the segment
+        :param end_point: The end knot of the segment
+        :return: A tuple consisting of the horizontal and vertical directions.
+        """
+        dx = end_point[0] - start_point[0]
+        dy = end_point[1] - start_point[1]
+
+        angle = Utils.angle_from_slope(dx, dy)
+        is_above_start = dy > 0
+        is_right = (is_above_start and 0 <= angle <= 90) or (not is_above_start and 90 <= angle <= 180)
+
+        horizontal = Direction.RIGHT if is_right else Direction.LEFT
+        vertical = Direction.UP if is_above_start else Direction.DOWN
+
+        return horizontal, vertical
