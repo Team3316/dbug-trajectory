@@ -100,9 +100,19 @@ class Curve:
         """
         degree = 5 if spline_type == SplineType.QUINTIC_HERMITE else 3
         return lambda t: np.array({
-            CurveType.POSITION: [t ** (degree - i) for i in range(degree + 1)],
-            CurveType.VELOCITY: [(degree - i) * t ** (degree - i - 1) for i in range(degree)] + [0],
-            CurveType.ACCELERATION: [(degree - i) * (degree - i - 1) * t ** (degree - i - 2) for i in range(degree - 1)] + [0, 0]
+            CurveType.POSITION: [
+                t ** (degree - i)
+                for i in range(degree + 1)
+            ],
+            CurveType.VELOCITY: [
+                (degree - i) * t ** (degree - i - 1) if degree - i - 1 >= 0 else np.zeros(t.shape)
+                for i in range(degree + 1)
+            ],
+            CurveType.ACCELERATION: [
+                (degree - i) * (degree - i - 1) * t ** (degree - i - 2)
+                if degree - i - 2 > 0 else np.zeros(t.shape)
+                for i in range(degree - 1)
+            ]
         }[curve_type])
 
     def calculate(self, t: TimeVariable, curve_type: CurveType) -> np.ndarray:

@@ -59,7 +59,7 @@ class Trajectory:
 
         return control_points
 
-    def curve(self):
+    def curve(self, curve_type: CurveType):
         cp = self.control_points()
 
         t = Utils.linspace(0, 1, samples=101)
@@ -68,4 +68,4 @@ class Trajectory:
             for points in cp
         ]
 
-        return npconcat([c.calculate(t, CurveType.POSITION) for c in curves])
+        return npconcat([c.calculate(t, curve_type) for c in curves])
