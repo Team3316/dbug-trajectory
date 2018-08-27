@@ -23,11 +23,19 @@ class CurveType(Enum):
 
 class Curve:
     """
-    A class representing a spline curve
+    A class representing a spline curve. Calculating each spline requires 3 ingredients:
+    1. A time monomials vector - for example, a cubic position spline will need the following
+       vector in order to compute: [t ** 3, t ** 2, t, 1], and a cubic velocity spline will use
+       the position curve's vector first derivative: [3 * t ** 2, 2 * t, 1, 0].
+    2. The _constant_ spline basis matrix - this depends on the specific spline type. For cubic splines the
+       basis matrix will be of dimension (3, 3) and quintic splines will be of dimension (5, 5). Generally,
+       an n-degree spline will use an (n, n) dimensional matrix. The supported splines' basis matrices
+       are given in the class.
+    3. The points to interpolate through - each spline requires has it's own formatting for this vector.
+       Each and every basis matrix has the required formatting for the spline written above it.
     """
 
     # Bézier cubic basis matrix
-    # Calculation: tvec * B3 * pvec
     # tvec = [t ** 3, t ** 2, t, 1]
     # pvec = [p0, dp0, dp1, p1]
     B3 = np.array([
@@ -38,7 +46,6 @@ class Curve:
     ])
 
     # Hermite cubic basis matrix
-    # Calculation: tvec * H3 * pvec
     # tvec = [t ** 3, t ** 2, t, 1]
     # pvec = [p0, p1, dp0, dp1]
     H3 = np.array([
@@ -49,7 +56,6 @@ class Curve:
     ])
 
     # Hermite quintic basis matrix
-    # Calculation: tvec * H5 * pvec
     # tvec = [t ** 5, t ** 4, t ** 3, t ** 2, t, 1]
     # pvec = [p0, dp0, d2p0, p1, dp1, d2p1]
     H5 = np.array([
