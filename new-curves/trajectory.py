@@ -69,9 +69,3 @@ class Trajectory:
         ]
 
         return npconcat([c.calculate(t, CurveType.POSITION) for c in curves])
-
-
-if __name__ == '__main__':
-    traj = Trajectory.from_json('../path1.json', '../mars.json')
-    curve = traj.curve()
-    print(','.join(['({}, {})'.format(round(p[0], 4), round(p[1], 4)) for p in curve]))

@@ -16,18 +16,18 @@ class Waypoint:
         :param time: The time the robot should be on the waypoint
         """
         self.point = point
-        self.angle = angle
+        self.angle = 90 - angle
         self.time = time
-        self.radians = radians(angle)
+        self.radians = radians(self.angle)
 
     def first_derivative(self, scale: float = 3) -> List[float]:
         x = cos(self.radians) * scale
         y = sin(self.radians) * scale
         return [x, y]
 
-    def second_derivative(self) -> List[float]:
-        x = -sin(self.radians)
-        y = cos(self.radians)
+    def second_derivative(self, scale: float = 0.15) -> List[float]:
+        x = -sin(self.radians) * scale
+        y = cos(self.radians) * scale
         return [x, y]
 
     def distance_to(self, waypoint) -> float:
