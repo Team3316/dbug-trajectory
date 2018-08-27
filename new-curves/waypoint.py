@@ -1,5 +1,5 @@
-from numpy import ndarray, array as nparr
-from math import cos, sin, radians
+from math import cos, sin, radians, sqrt
+from typing import List
 from utils import Point
 
 
@@ -20,16 +20,17 @@ class Waypoint:
         self.time = time
         self.radians = radians(angle)
 
-    def point(self) -> ndarray:
-        return nparr(self.point)
+    def first_derivative(self, scale: float = 3) -> List[float]:
+        x = cos(self.radians) * scale
+        y = sin(self.radians) * scale
+        return [x, y]
 
-    def first_derivative(self) -> ndarray:
-        x = cos(self.radians)
-        y = sin(self.radians)
-        return nparr([x, y])
-
-    def second_derivative(self, is_to_the_left: bool = False) -> ndarray:
-        coeff = 1 if is_to_the_left else -1
-        x = coeff * sin(self.radians)
+    def second_derivative(self) -> List[float]:
+        x = -sin(self.radians)
         y = cos(self.radians)
-        return nparr([x, y])
+        return [x, y]
+
+    def distance_to(self, waypoint) -> float:
+        dx = waypoint.point[0] - self.point[0]
+        dy = waypoint.point[1] - self.point[1]
+        return sqrt(dx ** 2 + dy ** 2)
