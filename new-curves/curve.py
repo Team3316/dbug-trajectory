@@ -104,13 +104,12 @@ class Curve:
                 for i in range(degree + 1)
             ],
             CurveType.VELOCITY: [
-                (degree - i) * t ** (degree - i - 1) if degree - i - 1 >= 0 else np.zeros(t.shape)
+                (degree - i) * t ** (degree - i - 1) if degree - i >= 1 else np.zeros(t.shape)
                 for i in range(degree + 1)
             ],
             CurveType.ACCELERATION: [
-                (degree - i) * (degree - i - 1) * t ** (degree - i - 2)
-                if degree - i - 2 > 0 else np.zeros(t.shape)
-                for i in range(degree - 1)
+                (degree - i) * (degree - i - 1) * t ** (degree - i - 2) if degree - i >= 2 else np.zeros(t.shape)
+                for i in range(degree + 1)
             ]
         }[curve_type])
 

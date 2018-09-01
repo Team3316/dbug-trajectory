@@ -81,15 +81,15 @@ class Trajectory:
         cp = self.control_points()
 
         t = linspace(0, 1, samples=101)
-        dx, dy = npconcat([
-            Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE).calculate(t, CurveType.VELOCITY)
-            for points in cp
-        ]).T
+        curves = [Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE) for points in cp]
 
-        return angle_from_slope(dx, dy)
+        dx, dy = npconcat([c.calculate(t, CurveType.VELOCITY) for c in curves]).T
+        d2x, d2y = npconcat([c.calculate(t, CurveType.ACCELERATION) for c in curves]).T
+
+        return angle_from_slope(dx, dy), ((d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2))
 
     def robot_curve(self, curve_type: CurveType, side: RobotSide):
-        coeff = 1 if side == RobotSide.LEFT else -1
+        coeff = (self.robot.robot_info[3] / 2) * (1 if side == RobotSide.LEFT else -1)
         cp = self.control_points()
 
         t = linspace(0, 1, samples=101)
@@ -99,11 +99,14 @@ class Trajectory:
         ]
 
         dx, dy = npconcat([c.calculate(t, CurveType.VELOCITY) for c in curves]).T
-        headings = angle_from_slope(dx, dy)
+        d2x, d2y = npconcat([c.calculate(t, CurveType.ACCELERATION) for c in curves]).T
+        theta = nprads(angle_from_slope(dx, dy))
+        dtheta = (d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2)
 
         points = npconcat([c.calculate(t, curve_type) for c in curves])
-
-        return points + nparray([
-            coeff * -npsin(nprads(headings)).T,
-            coeff * npcos(nprads(headings)).T
+        normals = coeff * nparray([
+            -npsin(theta) if curve_type == CurveType.POSITION else -npcos(theta) * dtheta,
+            npcos(theta) if curve_type == CurveType.POSITION else -npsin(theta) * dtheta
         ]).T
+
+        return points + normals
