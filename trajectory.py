@@ -1,168 +1,139 @@
-from bezier import SplineType
-from utils import Utils, PointList
-from typing import List
-from segment import Segment
-from csv import DictWriter
 import json
-import numpy as np
+
+from numpy import array as nparray, concatenate as npconcat, cos as npcos, sin as npsin, radians as nprads
+from curve import Curve, SplineType, CurveType
+from utils import angle_from_slope, linspace
+from waypoint import Waypoint
+from robot import Robot
+from typing import List
+from enum import Enum
 
 
-class Path(object):
-    def __init__(self,
-                 pts: PointList,
-                 headings: List[float],
-                 times: List[float],
-                 spline_type: SplineType = SplineType.CUBIC,
-                 name: str = "untitled-path",
-                 desc: str = "This is an untitled path."):
+class RobotSide(Enum):
+    LEFT = 1
+    RIGHT = 2
+
+
+class Trajectory:
+    """
+    A class that represents a robot's trajectory - with abilities to generate the needed
+    curves for the given robot's profile and according to the given waypoints.
+    """
+
+    def __init__(self, waypoints: List[Waypoint], robot: Robot):
         """
-        :param pts: Knot array. array<vec2>
-        :param headings: An array of the robot's angles at each knot. array<float>
-        :param times: Array of time information for each knot, meaning that
-                      the robot should be in pts[i] at time times[i]. array<float>
+        Creates a new Trajectory.
+        :param waypoints: The waypoints the trajectory should go through
+        :param robot: The robot profile to use
         """
-        self.pts = np.array(pts)
-        self.headings = np.array(headings)
-        self.times = np.array(times)
-        self.num_of_segments = len(pts) - 1
-        self.spline_type = spline_type
-
-        self.info = (name, desc)
-
-        self.origin = [0, 0]
-        self.complete_derivatives: np.ndarray = None
-        self.curve_segments: List[Segment] = None
-        self.curve_pos: np.ndarray = None
-        self.curve_vel: np.ndarray = None
-        self.curve_heading: np.ndarray = None
-
-        self.curve_robotl: np.ndarray = None
-        self.curve_robotr: np.ndarray = None
-        self.curve_robotvleft: np.ndarray = None
-        self.curve_robotvright: np.ndarray = None
-        self.curve_robotdist_left: np.ndarray = None
-        self.curve_robotdist_right: np.ndarray = None
+        self.waypoints = waypoints
+        self.robot = robot
 
     @classmethod
-    def from_json(cls, filename: str):
-        file = open(filename, 'r').read()
+    def from_json(cls, trajectory_filename: str, robot_filename: str):
+        """
+        Initializes a new Trajectory object using data defined in a given JSON file.
+        :param trajectory_filename: The filename of the trajectory data file
+        :param robot_filename: The filename of the robot profile data file
+        :return: A new Trajectory instance, initialized with a list of Waypoints from the trajectory file and a Robot
+                 from the robot file.
+        """
+        file = open(trajectory_filename, 'r').read()
         decoded = json.loads(file)
-        knots = decoded['knots']
-        pts = [knot['point'] for knot in knots]
-        headings = [knot['heading'] for knot in knots]
-        times = [knot['time'] for knot in knots]
-        spline_type = SplineType.QUINTIC if decoded['quintic'] else SplineType.CUBIC
-        bez = cls(pts, headings, times, spline_type, decoded['name'], decoded['description'])
-        bez.origin = np.array(decoded['origin']) + [decoded['robot-width'] / 2, 0]
-        return bez
-
-    def gen_constraints(self):
-        """
-        Makes an array of derivative information for each knot, giving the "Adobe handles effect" for the point planning.
-        """
-        derivatives = list(sum([
-            Utils.dts_for_heading(
-                self.pts[i],
-                self.pts[i + 1],
-                self.headings[i],
-                self.headings[i + 1],
-                self.spline_type
+        waypoints = [
+            Waypoint(
+                point=waypoint['point'],
+                angle=waypoint['heading'],
+                time=waypoint['time']
             )
-            for i in range(self.num_of_segments)
-        ], ()))
+            for waypoint in decoded['waypoints']
+        ]
+        robot = Robot.from_json(robot_filename)
+        return cls(waypoints, robot)
 
-        self.complete_derivatives = derivatives
+    def control_points(self):
+        """
+        Calculates the control points needed to calculate the curves.
+        :return: A list of numpy vectors holding all of the needed info for the curve.
+        """
+        lw = len(self.waypoints)
+        control_points = []
+        for i in range(lw - 1):
+            p0 = self.waypoints[i]
+            p1 = self.waypoints[i + 1]
+            dist = p0.distance_to(p1)
 
-    def gen_segments(self):
-        if self.complete_derivatives is None:
-            raise NotImplementedError('Complete derivative information is required for generating control points.')
-
-        # Make an array of 5-point arrays: [p[i], d[i], d[i + 1], p[i + 1], tvector],
-        # where tvector is the time vector of each point: [times[k], times[k + 1]].
-        self.curve_segments = [
-            Segment(
-                start_point=self.pts[k],
-                end_point=self.pts[k + 1],
-                start_der=self.complete_derivatives[4 * k],
-                end_der=self.complete_derivatives[4 * k + 1],
-                start_second_der=self.complete_derivatives[4 * k + 2],
-                end_second_der=self.complete_derivatives[4 * k + 3],
-                start_time=self.times[k],
-                end_time=self.times[k + 1],
-                origin=self.origin,
-                spline_type=self.spline_type
+            control_points.append(
+                nparray([
+                    p0.point,
+                    p0.first_derivative(scale=dist * 1),
+                    p0.second_derivative(),
+                    p1.point,
+                    p1.first_derivative(scale=dist * 1),
+                    p1.second_derivative()
+                ])
             )
-            for k in range(self.num_of_segments)
+
+        return control_points
+
+    def curve(self, curve_type: CurveType, concat: bool = True):
+        """
+        Calculates the curve corresponding to the given type for the _middle_ of the robot.
+        :param curve_type: The curve type wanted to calculate
+        :param concat: Should concat the segments or not. Default - false
+        :return: A list of numpy point vectors if concat is false. Else - one huge numpy vector
+        """
+        cp = self.control_points()
+
+        t = linspace(0, 1, samples=101)
+        curves = [
+            Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE).calculate(t, curve_type)
+            for points in cp
         ]
 
-    def curve(self, robot_width: float, flip: bool = False, basewidth: float = None):
+        return npconcat(curves) if concat else curves
+
+    def headings(self):
         """
-        Generates the robot curves, heading values and length values.
+        Calculates the robot's heading angles for each point in the curve (theta(t)) and calculates the derivative of
+        theta(t) (theta'(t)).
+        :return: A tuple consisting of the values of theta(t) and theta'(t) through the curve.
         """
-        if self.curve_segments is None:
-            raise NotImplementedError('Segment array is required for generating the curve points.')
+        cp = self.control_points()
 
-        if flip:
-            self.curve_segments = [seg.flip(basewidth) for seg in self.curve_segments]
+        t = linspace(0, 1, samples=101)
+        curves = [Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE) for points in cp]
 
-        curves = [seg.curve(1) for seg in self.curve_segments]
-        self.curve_pos = np.concatenate([pos for (pos, vel, acc) in curves])
-        self.curve_vel = np.concatenate([vel for (pos, vel, acc) in curves])
+        dx, dy = npconcat([c.calculate(t, CurveType.VELOCITY) for c in curves]).T
+        d2x, d2y = npconcat([c.calculate(t, CurveType.ACCELERATION) for c in curves]).T
 
-        t = Utils.linspace(0, 1, samples=Segment.NUM_OF_SAMPLES)
-        self.curve_heading = np.concatenate([seg.heading(t).tolist()[0] for seg in self.curve_segments])
+        return angle_from_slope(dx, dy), ((d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2))
 
-        robot_curves = [seg.robot_curve(1, robot_width) for seg in self.curve_segments]
-        self.curve_robotl = np.concatenate([tup[0] for tup in robot_curves])
-        self.curve_robotr = np.concatenate([tup[1] for tup in robot_curves])
-        self.curve_robotvleft = np.concatenate([tup[2] for tup in robot_curves])
-        self.curve_robotvright = np.concatenate([tup[3] for tup in robot_curves])
+    def robot_curve(self, curve_type: CurveType, side: RobotSide):
+        """
+        Calculates the given curve for the given side of the robot.
+        :param curve_type: The type of the curve to calculate
+        :param side: The side to use in the calculation
+        :return: The points of the calculated curve
+        """
+        coeff = (self.robot.robot_info[3] / 2) * (1 if side == RobotSide.LEFT else -1)
+        cp = self.control_points()
 
-        seg_lengths = [
-            np.array(self.curve_segments[i - 1].robot_lengths(robot_width)) if i > 0 else np.zeros((1, 2))[0]
-            for i in range(self.num_of_segments)
+        t = linspace(0, 1, samples=101)
+        curves = [
+            Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE)
+            for points in cp
         ]
-        parts_lengths = [
-            np.array([
-                seg_lengths[i] + seg.robot_lengths(robot_width, 0, t[0][k])
-                for k in range(Segment.NUM_OF_SAMPLES)
-            ])
-            for (i, seg) in enumerate(self.curve_segments)
-        ]
 
-        self.curve_robotdist_left = np.concatenate([dists[:, 0] for dists in parts_lengths])
-        self.curve_robotdist_right = np.concatenate([dists[:, 1] for dists in parts_lengths])
+        dx, dy = npconcat([c.calculate(t, CurveType.VELOCITY) for c in curves]).T
+        d2x, d2y = npconcat([c.calculate(t, CurveType.ACCELERATION) for c in curves]).T
+        theta = nprads(angle_from_slope(dx, dy))
+        dtheta = (d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2)
 
-        return self.curve_pos
+        points = npconcat([c.calculate(t, curve_type) for c in curves])
+        normals = coeff * nparray([
+            -npsin(theta) if curve_type == CurveType.POSITION else -npcos(theta) * dtheta,
+            npcos(theta) if curve_type == CurveType.POSITION else -npsin(theta) * dtheta
+        ]).T
 
-    def write_to_file(self, filename: str = None):
-        """
-        Writes the curve points to a CSV file.
-        :param filename: The wanted filename for the file. Default - curveinfo.csv
-        """
-        filename = self.info[0] + '.csv' if filename is None else filename
-        with open(filename, 'w', newline='') as csvfile:
-            fields = ['time', 'x', 'y', 'dx', 'dy', 'heading', 'leftdist', 'rightdist', 'vleft', 'vright']
-            writer = DictWriter(csvfile, fieldnames=fields)
-            writer.writeheader()
-
-            for i in range(self.num_of_segments):
-                seg = self.curve_segments[i]
-                t0, t1 = seg.times
-                t = Utils.linspace(t0, t1, samples=Segment.NUM_OF_SAMPLES)[0]
-                rangestart = (0 if i == 0 else 1)
-                SPLITTER = Segment.NUM_OF_SAMPLES - 1
-                for k in range(rangestart, Segment.NUM_OF_SAMPLES):
-                    writer.writerow({
-                        'time': t[k],
-                        'x': self.curve_pos[SPLITTER * i + k, 0],
-                        'y': self.curve_pos[SPLITTER * i + k, 1],
-                        'dx': self.curve_vel[SPLITTER * i + k, 0],
-                        'dy': self.curve_vel[SPLITTER * i + k, 1],
-                        'heading': 90 - self.curve_heading[SPLITTER * i + k],
-                        'leftdist': self.curve_robotdist_left[SPLITTER * i + k],
-                        'rightdist': self.curve_robotdist_left[SPLITTER * i + k],
-                        'vleft': self.curve_robotvleft[SPLITTER * i + k],
-                        'vright': self.curve_robotvright[SPLITTER * i + k]
-                    })
-
+        return points + normals

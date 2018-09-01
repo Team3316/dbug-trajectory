@@ -1,11 +1,13 @@
-import json
-
+from typing import Dict, Union, List
+from trajectory import Path
+from numpy import ndarray
 from math import inf
+import json
 
 
 class Robot(object):
     """
-    A class that keeps information about a given robot, in order to generate paths and trajectories based on the robot's
+    This class keeps information about a given robot, in order to generate paths and trajectories based on the robot's
     specifications. It can also generate these paths using the Bézier-based implementation, specified in `trajectory.py`.
     IMPORTANT - This profiling is currently only suited for transmissions with one kind of motor.
     """
@@ -33,6 +35,7 @@ class Robot(object):
         """
         self.robot_info = (name, year, mass, base_width)
         self.chassis_info = (free_speed, stall_torque, gear_ratio, wheel_radius)
+        self.paths: Dict[str, Path] = {}
 
     @classmethod
     def from_json(cls, filename: str = 'robot.json'):
@@ -65,3 +68,34 @@ class Robot(object):
         vf, ts, g, r = self.chassis_info
         k1 = (2 * ts * g) / (r * m * vf)
         return i / k1
+
+    def load_path(self, filename: str):
+        """
+        Loads a curve into the robot's profile.
+        :param filename: The filename with the curve data.
+        """
+        bez = Path.from_json(filename)
+        path_name = bez.info[0]
+        self.paths[path_name] = bez
+
+    def gen_path(self, name: str = None, flip: bool = False, base: float = 0) -> Union[ndarray, List[ndarray]]:
+        """
+        Calculates the curves using this robot profile.
+        :param name: The curve's name. If it isn't specified, an array with all of the paths stored will be returned.
+        :param flip: Should the curves be flipped according to the middle axis of the base width?
+        :param base: The base width of which the path will be flipped.
+        """
+        _, _, _, w = self.robot_info
+        if name is None:
+            curves = []
+            for k in self.paths.keys():
+                p = self.paths[k]
+                p.gen_constraints()
+                p.gen_segments()
+                curves.append(p.curve(w, flip, base))
+            return curves
+        else:
+            p = self.paths[name]
+            p.gen_constraints()
+            p.gen_segments()
+            return p.curve(w, flip, base)

@@ -2,9 +2,8 @@ import matplotlib.pyplot as plot
 
 from matplotlib.patches import Rectangle
 from abc import ABC, abstractmethod
-from .trajectory import Trajectory
+from trajectory import Trajectory
 from numpy import arange
-from .curve import Curve
 
 
 class Output(ABC):
