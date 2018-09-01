@@ -2,7 +2,6 @@ import numpy as np
 
 from typing import Callable, Union
 from numpy.linalg import multi_dot
-from utils import Utils
 from enum import Enum
 
 TimeVariable = Union[float, np.ndarray]
@@ -132,9 +131,3 @@ class Curve:
             multi_dot([v.T, M, xs]),
             multi_dot([v.T, M, ys])
         ]).T
-
-    # TODO - DELETE!!! This function is ONLY intended for testing purposes
-    def desmos_points(self, curve_type: CurveType):
-        x = Utils.linspace(0, 1, samples=100)
-        points = ['({}, {})'.format(round(p[0], 4), round(p[1], 4)) for p in self.calculate(x, curve_type)]
-        return ','.join(points)
