@@ -21,6 +21,9 @@ class Trajectory:
     curves for the given robot's profile and according to the given waypoints.
     """
 
+    # The number of samples to use in the calculations
+    SAMPLE_SIZE = 100
+
     def __init__(self, waypoints: List[Waypoint], robot: Robot):
         """
         Creates a new Trajectory.
@@ -86,7 +89,7 @@ class Trajectory:
         """
         cp = self.control_points()
 
-        t = linspace(0, 1, samples=101)
+        t = linspace(0, 1, samples=Trajectory.SAMPLE_SIZE + 1)
         curves = [
             Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE).calculate(t, curve_type)
             for points in cp
@@ -103,7 +106,7 @@ class Trajectory:
         return npconcat([
             [
                 [
-                    i + (j / 100),
+                    i + (j / Trajectory.SAMPLE_SIZE),
                     sqrt(v[0] ** 2 + v[1] ** 2) - sqrt(seg[0][0] ** 2 + seg[0][1] ** 2)
                 ]
                 for (j, v) in enumerate(seg)
@@ -119,7 +122,7 @@ class Trajectory:
         """
         cp = self.control_points()
 
-        t = linspace(0, 1, samples=101)
+        t = linspace(0, 1, samples=Trajectory.SAMPLE_SIZE + 1)
         curves = [Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE) for points in cp]
 
         dx, dy = npconcat([c.calculate(t, CurveType.VELOCITY) for c in curves]).T
@@ -137,7 +140,7 @@ class Trajectory:
         coeff = (self.robot.robot_info[3] / 2) * (1 if side == RobotSide.LEFT else -1)
         cp = self.control_points()
 
-        t = linspace(0, 1, samples=101)
+        t = linspace(0, 1, samples=Trajectory.SAMPLE_SIZE + 1)
         curves = [
             Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE)
             for points in cp
