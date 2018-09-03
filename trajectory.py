@@ -7,6 +7,7 @@ from waypoint import Waypoint
 from robot import Robot
 from typing import List
 from enum import Enum
+from math import sqrt
 
 
 class RobotSide(Enum):
@@ -66,10 +67,10 @@ class Trajectory:
             control_points.append(
                 nparray([
                     p0.point,
-                    p0.first_derivative(scale=dist * 1),
+                    p0.first_derivative(scale=dist),
                     p0.second_derivative(),
                     p1.point,
-                    p1.first_derivative(scale=dist * 1),
+                    p1.first_derivative(scale=dist),
                     p1.second_derivative()
                 ])
             )
@@ -92,6 +93,23 @@ class Trajectory:
         ]
 
         return npconcat(curves) if concat else curves
+
+    def speed(self):
+        """
+        Calcualtes the speed of the _middle_ of the robot.
+        :return: A numpy list of vectors [t, s(t)] for the time and speed values
+        """
+        velocities = self.curve(CurveType.VELOCITY, concat=False)
+        return npconcat([
+            [
+                [
+                    i + (j / 100),
+                    sqrt(v[0] ** 2 + v[1] ** 2) - sqrt(seg[0][0] ** 2 + seg[0][1] ** 2)
+                ]
+                for (j, v) in enumerate(seg)
+            ]
+            for (i, seg) in enumerate(velocities)
+        ])
 
     def headings(self):
         """
@@ -137,3 +155,13 @@ class Trajectory:
         ]).T
 
         return points + normals
+
+    def robot_speeds(self, side: RobotSide):
+        """
+        Calculates the speeds for the given robot side.
+        :param side: The side to use in the calculation
+        :return: The speeds of the robot side
+        """
+        speed = self.speed()
+        index = 0 if side == RobotSide.LEFT else 1
+        return [[s[0], self.robot.inverse_kinematics(s[1])[index]] for s in speed]
