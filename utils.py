@@ -48,3 +48,14 @@ def length_integral(t0: float, t1: float, df: Callable[[float], Any], n: int):
     sum2 = 4 * np.hypot(fs2[:, 0], fs2[:, 1]).sum()
 
     return (dx / (3 * n)) * (f0 + sum1 + sum2 + fn)
+
+
+def clamp_to_bounds(lb: float, ub: float, val: float):
+    """
+    Clamps the given value to the given bounds.
+    :param lb: The lower bound of the clamp
+    :param ub: The upper bound of the clamp
+    :param val: The value to clamp
+    :return: The clamped value
+    """
+    return max(min(val, ub), lb)

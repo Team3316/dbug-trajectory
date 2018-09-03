@@ -1,5 +1,7 @@
 import json
 
+from utils import clamp_to_bounds
+from typing import Tuple
 from math import inf
 
 
@@ -53,15 +55,45 @@ class Robot(object):
             wheel_radius=robot['wheel-radius']
         )
 
-    def time_to_max(self, i: int = 6) -> float:
+    def time_to_max(self, i: int = 4) -> float:
         """
         This calculates the time required to get the robot to 99.75% of its free speed, based on solving the ODE
         given here: https://drive.google.com/file/d/0B_lA0xR4_viqbTJYanE4X3VnWE0/view [2] and calculating its
         time constant.
-        :param i: The number to multiply the time constant in. 5 results in 99.32% of free speed, 6 (default) is 99.75%.
-        :return: The time to reach 99.75% of the robot's free speed using full power, in seconds.
+        :param i: The number to multiply the time constant in. 5 results in 99.32% of free speed, 4 (default) is 98.17%.
+        :return: The time to reach 98.17% of the robot's free speed using full power, in seconds.
         """
         _, _, m, _ = self.robot_info
         vf, ts, g, r = self.chassis_info
         k1 = (2 * ts * g) / (r * m * vf)
         return i / k1
+
+    def forward_kinematics(self, left_velocity: float, right_velocity: float) -> Tuple[float, float]:
+        """
+        Solve the forward kinematics for the current robot (aka for the middle of the robot). The middle velocity is
+        the average between the left and right velocities, and the angular velocity is calculates using the equation
+        given here: http://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf [3]
+        :param left_velocity: The velocity of the left side of the robot
+        :param right_velocity: The velocity of the right side of the robot
+        :return: A tuple: (linear_velocity, angular_velocity)
+        """
+        _, _, _, base_width = self.robot_info
+        linear = (left_velocity + right_velocity) / 2
+        angular = (right_velocity - left_velocity) / base_width
+
+        return linear, angular
+
+    def inverse_kinematics(self, linear_velocity: float):
+        """
+        Solve the inverse kinematics for the current robot, according to the inverse kinematic equations given here:
+        http://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf [1, 2]
+        :param linear_velocity: The robot's middle linear velocity
+        :return: A tuple: (left_velocity, right_velocity)
+        """
+        _, _, _, base_width = self.robot_info
+        free_speed, _, _, wheel_radius = self.chassis_info
+
+        left_velocity = clamp_to_bounds(-free_speed, free_speed, linear_velocity * (1 + base_width / (2 * wheel_radius)))
+        right_velocity = clamp_to_bounds(-free_speed, free_speed, linear_velocity * (1 - base_width / (2 * wheel_radius)))
+
+        return left_velocity, right_velocity
