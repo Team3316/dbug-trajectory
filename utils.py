@@ -59,3 +59,12 @@ def clamp_to_bounds(lb: float, ub: float, val: float):
     :return: The clamped value
     """
     return max(min(val, ub), lb)
+
+
+def vectorify(t: NpCompatible) -> np.ndarray:
+    if type(t) is float or type(t) is int or type(t) is np.float64:
+        return np.array([[t]])
+    elif type(t) is np.ndarray:
+        return t
+    else:
+        return np.array(t)

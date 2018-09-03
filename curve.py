@@ -2,6 +2,7 @@ import numpy as np
 
 from typing import Callable, Union
 from numpy.linalg import multi_dot
+from utils import vectorify
 from enum import Enum
 
 TimeVariable = Union[float, np.ndarray]
@@ -121,7 +122,8 @@ class Curve:
         :return: The point(s) p(t), where p is the curve function.
         """
         M = Curve.basis_matrix_for_type(self.spline_type)
-        v = Curve.time_vector_for_type(self.spline_type, curve_type)(t)[:, 0, :]
+        tvec = vectorify(t)
+        v = Curve.time_vector_for_type(self.spline_type, curve_type)(tvec)[:, 0, :]
 
         xs = self.control_points[:, 0]
         ys = self.control_points[:, 1]
