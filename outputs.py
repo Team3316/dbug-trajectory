@@ -84,6 +84,18 @@ class PlotOutput(Output, ABC):
                 length_includes_head=True
             )
 
+    def plot_control_points(self, shift_x: float, control_points: ndarray):
+        for points in control_points:
+            p0, v0, a0, p1, v1, a1 = points
+
+            self.axes.plot(p0[0] + shift_x, p0[1], 'bo')
+            self.axes.plot(v0[0] + p0[0] + shift_x, v0[1] + p0[1], 'rx')
+            self.axes.plot(a0[0] + p0[0] + shift_x, a0[1] + p0[1], 'g8')
+
+            self.axes.plot(p1[0] + shift_x, p1[1], 'bo')
+            self.axes.plot(v1[0] + p1[0] + shift_x, v1[1] + p1[1], 'rx')
+            self.axes.plot(a1[0] + p1[0] + shift_x, a1[1] + p1[1], 'g8')
+
     def render(self):
         self.setup_plot()
         self.setup_obstacles()
@@ -99,6 +111,7 @@ class PlotOutput(Output, ABC):
         self.axes.plot(right_curve[:, 0] + shift_x, right_curve[:, 1], 'magenta')
 
         self.plot_headings(shift_x, middle_curve, self.trajectory.headings()[0])
+        self.plot_control_points(shift_x, self.trajectory.control_points())
 
         self.fig.savefig('graph.png')
 
