@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from math import sin, cos, radians
 from numpy import arange, ndarray
 from curve import CurveType
+from csv import DictWriter
 from typing import List
 
 
@@ -136,3 +137,37 @@ class DesmosOutput(Output):
 
         print('Right speed:')
         print(self.format(self.trajectory.robot_speeds(RobotSide.RIGHT)))
+
+
+class CSVOutput(Output):
+    FIELDS = ['time', 'x', 'y', 'dx', 'dy', 'heading', 'vleft', 'vright']
+
+    def __init__(self, trajectory: Trajectory, filename: str = None):
+        super().__init__(trajectory)
+
+        fname = trajectory.name + '.csv' if filename is None else filename
+        self.file = open(fname, 'w', newline='')
+        self.writer = DictWriter(self.file, fieldnames=CSVOutput.FIELDS)
+
+    def render(self):
+        self.writer.writeheader()
+
+        num_of_samples = self.trajectory.num_of_segments * (Trajectory.SAMPLE_SIZE + 1)
+
+        middle_position = self.trajectory.curve(CurveType.POSITION, concat=True)
+        middle_velocity = self.trajectory.curve(CurveType.VELOCITY, concat=True)
+        headings = self.trajectory.headings()[0]
+        left_speed = self.trajectory.robot_speeds(RobotSide.LEFT)
+        right_speed = self.trajectory.robot_speeds(RobotSide.RIGHT)
+
+        for i in range(num_of_samples):
+            self.writer.writerow({
+                'time': left_speed[i][0],
+                'x': middle_position[i, 0],
+                'y': middle_position[i, 1],
+                'dx': middle_velocity[i, 0],
+                'dy': middle_velocity[i, 1],
+                'heading': 90 - headings[i],
+                'vleft': left_speed[i][1],
+                'vright': right_speed[i][1]
+            })

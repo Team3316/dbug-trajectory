@@ -1,4 +1,4 @@
-from outputs import PlotOutput, DesmosOutput
+from outputs import PlotOutput, DesmosOutput, CSVOutput
 from trajectory import Trajectory
 
 if __name__ == '__main__':
@@ -9,3 +9,6 @@ if __name__ == '__main__':
 
     desmos = DesmosOutput(trajectory=traj)
     desmos.render()
+
+    csv = CSVOutput(trajectory=traj)
+    csv.render()

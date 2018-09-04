@@ -24,7 +24,7 @@ class Trajectory:
     # The number of samples to use in the calculations
     SAMPLE_SIZE = 100
 
-    def __init__(self, waypoints: List[Waypoint], robot: Robot):
+    def __init__(self, waypoints: List[Waypoint], robot: Robot, name: str = 'generic-path'):
         """
         Creates a new Trajectory.
         :param waypoints: The waypoints the trajectory should go through
@@ -32,6 +32,8 @@ class Trajectory:
         """
         self.waypoints = waypoints
         self.robot = robot
+        self.name = name
+        self.num_of_segments = len(waypoints) - 1
 
     @classmethod
     def from_json(cls, trajectory_filename: str, robot_filename: str):
@@ -53,7 +55,8 @@ class Trajectory:
             for waypoint in decoded['waypoints']
         ]
         robot = Robot.from_json(robot_filename)
-        return cls(waypoints, robot)
+        name = decoded['name']
+        return cls(waypoints, robot, name)
 
     def control_points(self):
         """
