@@ -1,8 +1,8 @@
 import json
 
 from numpy import array as nparray, concatenate as npconcat, cos as npcos, sin as npsin, radians as nprads
+from utils import angle_from_slope, linspace, length_integral
 from curve import Curve, SplineType, CurveType
-from utils import angle_from_slope, linspace
 from waypoint import Waypoint
 from robot import Robot
 from typing import List

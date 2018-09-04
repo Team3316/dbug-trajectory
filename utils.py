@@ -37,12 +37,13 @@ def length_integral(t0: float, t1: float, df: Callable[[float], Any], n: int):
     :param n: The number of samples in the given derivative array
     :return: An approximated segment length, in the segment's units, using Simpson's rule.
     """
+    df_fix = lambda t: df(t)[0]  # This is needed because numpy is shit sometimes
     dx = t1 - t0
-    f0 = hypot(df(t0)[0], df(t0)[1])
-    fn = hypot(df(t1)[0], df(t1)[1])
+    f0 = hypot(df_fix(t0)[0], df_fix(t0)[1])
+    fn = hypot(df_fix(t1)[0], df_fix(t1)[1])
 
-    fs1 = np.array([df((t0 + (dx * 2 * k)) / n) for k in range(1, int(n / 2))])
-    fs2 = np.array([df((t0 + (dx * (2 * k - 1))) / n) for k in range(1, int(n / 2) + 1)])
+    fs1 = np.array([df_fix((t0 + (dx * 2 * k)) / n) for k in range(1, int(n / 2))])
+    fs2 = np.array([df_fix((t0 + (dx * (2 * k - 1))) / n) for k in range(1, int(n / 2) + 1)])
 
     sum1 = 2 * np.hypot(fs1[:, 0], fs1[:, 1]).sum()
     sum2 = 4 * np.hypot(fs2[:, 0], fs2[:, 1]).sum()
