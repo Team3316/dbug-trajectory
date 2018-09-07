@@ -119,8 +119,8 @@ class Trajectory:
 
     def headings(self):
         """
-        Calculates the robot's heading angles for each point in the curve (theta(t)) and calculates the derivative of
-        theta(t) (theta'(t)).
+        Calculates the robot's heading angles for each point in the curve (theta(t)) and calculates the angular velocity
+        in each point on the curve (theta'(t)).
         :return: A tuple consisting of the values of theta(t) and theta'(t) through the curve.
         """
         cp = self.control_points()
