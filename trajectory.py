@@ -169,5 +169,6 @@ class Trajectory:
         :return: The speeds of the robot side
         """
         speed = self.speed()
+        _, angular_speed = self.headings()
         index = 0 if side == RobotSide.LEFT else 1
-        return [[s[0], self.robot.inverse_kinematics(s[1])[index]] for s in speed]
+        return [[s[0], self.robot.forward_kinematics(s[1], angular_speed[i])[index]] for (i, s) in enumerate(speed)]
