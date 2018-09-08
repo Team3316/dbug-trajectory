@@ -68,6 +68,30 @@ class Robot(object):
         k1 = (2 * ts * g) / (r * m * vf)
         return i / k1
 
+    def max_acceleration(self) -> float:
+        """
+        Calculates the maximum acceleration of the robot using Newton's 2nd law.
+        F_max = ma ==> a_max = F_max / m
+        :return: The maximum acceleration
+        """
+        _, _, m, _ = self.robot_info
+        _, ts, g, r = self.chassis_info
+        return (ts * g) / (r * m)
+
+    def rotational_inertia(self, linear_velocity: float, angular_velocity: float) -> float:
+        """
+        Calculates the robot's rotational inertia: I = mr^2. In order to calculate the current robot's turning radius,
+        the linear and angular velocities are needed, since v = rw -> r = v / w. So the rotational inertia at time t is:
+        I(t) = m * (v(t) / w(t))^2, where v is the linear velocity and w is the angular velocity.
+        :param linear_velocity: The current linear velocity
+        :param angular_velocity: The current angular velocity
+        :return: The current rotational inertia of the robot.
+        """
+        _, _, m, _ = self.robot_info
+        r = linear_velocity / angular_velocity
+
+        return m * (r ** 2)
+
     def inverse_kinematics(self, left_velocity: float, right_velocity: float) -> Tuple[float, float]:
         """
         Solve the forward kinematics for the current robot (aka for the middle of the robot). The middle velocity is
@@ -94,7 +118,9 @@ class Robot(object):
         _, _, _, base_width = self.robot_info
         free_speed, _, _, wheel_radius = self.chassis_info
 
-        left_velocity = clamp_to_bounds(-free_speed, free_speed, linear_velocity + angular_velocity * (base_width / 2))
-        right_velocity = clamp_to_bounds(-free_speed, free_speed, linear_velocity - angular_velocity * (base_width / 2))
+        w = angular_velocity * (base_width / 2)
+
+        left_velocity = clamp_to_bounds(-free_speed, free_speed, (linear_velocity - w))
+        right_velocity = clamp_to_bounds(-free_speed, free_speed, (linear_velocity + w))
 
         return left_velocity, right_velocity

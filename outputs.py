@@ -118,13 +118,19 @@ class PlotOutput(Output, ABC):
 
 
 class DesmosOutput(Output):
-    def format(self, curve: ndarray) -> str:
-        points = ['({}, {})'.format(round(v[0], 4), round(v[1], 4)) for v in curve]
+    def format(self, curve: ndarray, i: int = 1) -> str:
+        points = ['({}, {})'.format(round(v[0], 4), round(v[i], 4)) for v in curve]
         return ','.join(points)
 
     def render(self):
         print('Position:')
         print(self.format(self.trajectory.curve(CurveType.POSITION)))
+
+        print('Velocity vectors:')
+        print(self.format(self.trajectory.curve(CurveType.VELOCITY)))
+
+        print('Velocity:')
+        print(self.format(self.trajectory.speed()))
 
         print('Left position:')
         print(self.format(self.trajectory.robot_curve(CurveType.POSITION, RobotSide.LEFT)))
@@ -132,10 +138,10 @@ class DesmosOutput(Output):
         print('Right position:')
         print(self.format(self.trajectory.robot_curve(CurveType.POSITION, RobotSide.RIGHT)))
 
-        print('Left speed:')
+        print('Left velocity:')
         print(self.format(self.trajectory.robot_speeds(RobotSide.LEFT)))
 
-        print('Right speed:')
+        print('Right velocity:')
         print(self.format(self.trajectory.robot_speeds(RobotSide.RIGHT)))
 
 

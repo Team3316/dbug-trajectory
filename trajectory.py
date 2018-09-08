@@ -74,10 +74,10 @@ class Trajectory:
                 nparray([
                     p0.point,
                     p0.first_derivative(scale=dist),
-                    p0.second_derivative(),
+                    p0.second_derivative(scale=0.2 * dist),
                     p1.point,
                     p1.first_derivative(scale=dist),
-                    p1.second_derivative()
+                    p1.second_derivative(scale=0.2 * dist)
                 ])
             )
 
@@ -106,10 +106,11 @@ class Trajectory:
         :return: A numpy list of vectors [t, s(t)] for the time and speed values
         """
         velocities = self.curve(CurveType.VELOCITY, concat=False)
+        times = [w.time for w in self.waypoints]
         return npconcat([
             [
                 [
-                    i + (j / Trajectory.SAMPLE_SIZE),
+                    (times[i + 1] - times[i]) * (j / Trajectory.SAMPLE_SIZE) + times[i],
                     sqrt(v[0] ** 2 + v[1] ** 2) - sqrt(seg[0][0] ** 2 + seg[0][1] ** 2)
                 ]
                 for (j, v) in enumerate(seg)
@@ -171,4 +172,10 @@ class Trajectory:
         speed = self.speed()
         _, angular_speed = self.headings()
         index = 0 if side == RobotSide.LEFT else 1
-        return [[s[0], self.robot.forward_kinematics(s[1], angular_speed[i])[index]] for (i, s) in enumerate(speed)]
+        return [
+            [
+                s[0],
+                self.robot.forward_kinematics(s[1], angular_speed[i])[index]
+            ]
+            for (i, s) in enumerate(speed)
+        ]
