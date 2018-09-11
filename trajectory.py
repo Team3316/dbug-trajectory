@@ -106,11 +106,10 @@ class Trajectory:
         :return: A numpy list of vectors [t, s(t)] for the time and speed values
         """
         velocities = self.curve(CurveType.VELOCITY, concat=False)
-        times = [w.time for w in self.waypoints]
         return npconcat([
             [
                 [
-                    (times[i + 1] - times[i]) * (j / Trajectory.SAMPLE_SIZE) + times[i],
+                    (j / Trajectory.SAMPLE_SIZE) + i,
                     sqrt(v[0] ** 2 + v[1] ** 2) - sqrt(seg[0][0] ** 2 + seg[0][1] ** 2)
                 ]
                 for (j, v) in enumerate(seg)

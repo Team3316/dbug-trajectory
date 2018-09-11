@@ -25,7 +25,7 @@ class Waypoint:
         y = sin(rads) * scale
         return [x, y]
 
-    def second_derivative(self, velocity: bool = False, scale: float = 0.15) -> List[float]:
+    def second_derivative(self, scale: float = 0.15) -> List[float]:
         rads = radians(self.angle)
         x = -sin(rads) * scale
         y = cos(rads) * scale
