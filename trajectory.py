@@ -150,14 +150,12 @@ class Trajectory:
         ]
 
         dx, dy = npconcat([c.calculate(t, CurveType.VELOCITY) for c in curves]).T
-        d2x, d2y = npconcat([c.calculate(t, CurveType.ACCELERATION) for c in curves]).T
         theta = nprads(angle_from_slope(dx, dy))
-        dtheta = (d2y * dx - d2x * dy) / (dx ** 2 + dy ** 2)
 
         points = npconcat([c.calculate(t, curve_type) for c in curves])
         normals = coeff * nparray([
-            -npsin(theta) if curve_type == CurveType.POSITION else -npcos(theta) * dtheta,
-            npcos(theta) if curve_type == CurveType.POSITION else -npsin(theta) * dtheta
+            -npsin(theta),
+            npcos(theta)
         ]).T
 
         return points + normals
