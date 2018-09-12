@@ -94,7 +94,7 @@ class Robot(object):
 
     def inverse_kinematics(self, left_velocity: float, right_velocity: float) -> Tuple[float, float]:
         """
-        Solve the forward kinematics for the current robot (aka for the middle of the robot). The middle velocity is
+        Solve the inverse kinematics for the current robot (aka for the middle of the robot). The middle velocity is
         the average between the left and right velocities, and the angular velocity is calculates using the equation
         given here: http://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf [3]
         :param left_velocity: The velocity of the left side of the robot
@@ -107,9 +107,9 @@ class Robot(object):
 
         return linear, angular
 
-    def forward_kinematics(self, linear_velocity: float, angular_velocity: float):
+    def forward_kinematics(self, linear_velocity: float, angular_velocity: float) -> Tuple[float, float]:
         """
-        Solve the inverse kinematics for the current robot, according to the inverse kinematic equations given here:
+        Solve the forward kinematics for the current robot, according to the forward kinematic equations given here:
         http://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf [1, 2]
         :param linear_velocity: The robot's middle linear velocity
         :param angular_velocity: The robot's middle angular velocity
