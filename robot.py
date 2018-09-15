@@ -116,11 +116,11 @@ class Robot(object):
         :return: A tuple: (left_velocity, right_velocity)
         """
         _, _, _, base_width = self.robot_info
-        free_speed, _, _, wheel_radius = self.chassis_info
+        _, _, _, wheel_radius = self.chassis_info
 
         w = angular_velocity * (base_width / 2)
 
-        left_velocity = clamp_to_bounds(-free_speed, free_speed, (linear_velocity - w))
-        right_velocity = clamp_to_bounds(-free_speed, free_speed, (linear_velocity + w))
+        left_velocity = linear_velocity - w
+        right_velocity = linear_velocity + w
 
         return left_velocity, right_velocity

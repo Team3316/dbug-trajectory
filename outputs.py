@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plot
 
+from numpy import arange, ndarray, array as nparray
 from trajectory import Trajectory, RobotSide
 from matplotlib.patches import Rectangle
 from abc import ABC, abstractmethod
 from math import sin, cos, radians
-from numpy import arange, ndarray
 from curve import CurveType
 from csv import DictWriter
 from typing import List
@@ -138,11 +138,27 @@ class DesmosOutput(Output):
         print('Right position:')
         print(self.format(self.trajectory.robot_curve(CurveType.POSITION, RobotSide.RIGHT)))
 
+        free_speed = self.trajectory.robot.chassis_info[0]
+        vleft = self.trajectory.robot_speeds(RobotSide.LEFT)
+        vright = self.trajectory.robot_speeds(RobotSide.RIGHT)
+
         print('Left velocity:')
-        print(self.format(self.trajectory.robot_speeds(RobotSide.LEFT)))
+        print(self.format(vleft))
 
         print('Right velocity:')
-        print(self.format(self.trajectory.robot_speeds(RobotSide.RIGHT)))
+        print(self.format(vright))
+
+        print('Left output:')
+        print(self.format(nparray([
+            [v[0], v[1] / free_speed]
+            for v in vleft
+        ])))
+
+        print('Right output:')
+        print(self.format(nparray([
+            [v[0], v[1] / free_speed]
+            for v in vright
+        ])))
 
 
 class CSVOutput(Output):

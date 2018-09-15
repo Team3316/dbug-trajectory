@@ -1,7 +1,7 @@
 import json
 
 from numpy import array as nparray, concatenate as npconcat, cos as npcos, sin as npsin, radians as nprads
-from utils import angle_from_slope, linspace, length_integral
+from utils import angle_from_slope, linspace, clamp_to_bounds
 from curve import Curve, SplineType, CurveType
 from waypoint import Waypoint
 from robot import Robot
@@ -68,16 +68,15 @@ class Trajectory:
         for i in range(lw - 1):
             p0 = self.waypoints[i]
             p1 = self.waypoints[i + 1]
-            dist = p0.distance_to(p1)
 
             control_points.append(
                 nparray([
                     p0.point,
-                    p0.first_derivative(scale=dist),
-                    p0.second_derivative(scale=0.2 * dist),
+                    p0.first_derivative(),
+                    p0.second_derivative(),
                     p1.point,
-                    p1.first_derivative(scale=dist),
-                    p1.second_derivative(scale=0.2 * dist)
+                    p1.first_derivative(),
+                    p1.second_derivative()
                 ])
             )
 
@@ -110,7 +109,7 @@ class Trajectory:
             [
                 [
                     (j / Trajectory.SAMPLE_SIZE) + i,
-                    sqrt(v[0] ** 2 + v[1] ** 2) - sqrt(seg[0][0] ** 2 + seg[0][1] ** 2)
+                    sqrt(v[0] ** 2 + v[1] ** 2)
                 ]
                 for (j, v) in enumerate(seg)
             ]
@@ -166,13 +165,19 @@ class Trajectory:
         :param side: The side to use in the calculation
         :return: The speeds of the robot side
         """
+        free_speed = self.robot.chassis_info[0]
         speed = self.speed()
         _, angular_speed = self.headings()
         index = 0 if side == RobotSide.LEFT else 1
+        to_deduce = self.robot.forward_kinematics(speed[0][1],  angular_speed[0])[index]
         return [
             [
                 s[0],
-                self.robot.forward_kinematics(s[1], angular_speed[i])[index]
+                clamp_to_bounds(
+                    -free_speed,
+                    free_speed,
+                    self.robot.forward_kinematics(s[1], angular_speed[i])[index] - to_deduce
+                )
             ]
             for (i, s) in enumerate(speed)
         ]
