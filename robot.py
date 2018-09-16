@@ -1,6 +1,5 @@
 import json
 
-from utils import clamp_to_bounds
 from typing import Tuple
 from math import inf
 
@@ -20,7 +19,8 @@ class Robot(object):
                  free_speed: float = 0,
                  stall_torque: float = inf,
                  gear_ratio: float = 1,
-                 wheel_radius: float = 0):
+                 wheel_radius: float = 0,
+                 num_of_drive_motors: int = 0):
         """
         Initializes the robot profile using the given parameters.
         :param name: The name of the robot.
@@ -32,9 +32,10 @@ class Robot(object):
         :param stall_torque: The robot's motors stall torque, in N * m. Given in the motor's specification
         :param gear_ratio: The transmissions' gear ratio.
         :param wheel_radius: The robot wheels' radius, in m.
+        :param num_of_drive_motors: The number of motors used in the drivetrain.
         """
         self.robot_info = (name, year, mass, base_width)
-        self.chassis_info = (free_speed, stall_torque, gear_ratio, wheel_radius)
+        self.chassis_info = (free_speed, stall_torque, gear_ratio, wheel_radius, num_of_drive_motors)
 
     @classmethod
     def from_json(cls, filename: str = 'robot.json'):
@@ -52,7 +53,8 @@ class Robot(object):
             free_speed=robot['free-speed'],
             stall_torque=robot['stall-torque'],
             gear_ratio=robot['gear-ratio'],
-            wheel_radius=robot['wheel-radius']
+            wheel_radius=robot['wheel-radius'],
+            num_of_drive_motors=robot['motors']
         )
 
     def time_to_max(self, i: int = 4) -> float:
@@ -64,8 +66,8 @@ class Robot(object):
         :return: The time to reach 98.17% of the robot's free speed using full power, in seconds.
         """
         _, _, m, _ = self.robot_info
-        vf, ts, g, r = self.chassis_info
-        k1 = (2 * ts * g) / (r * m * vf)
+        vf, ts, g, r, n = self.chassis_info
+        k1 = (2 * n * ts * g) / (r * m * vf)
         return i / k1
 
     def max_acceleration(self) -> float:
@@ -75,8 +77,8 @@ class Robot(object):
         :return: The maximum acceleration
         """
         _, _, m, _ = self.robot_info
-        _, ts, g, r = self.chassis_info
-        return (ts * g) / (r * m)
+        _, ts, g, r, n = self.chassis_info
+        return (2 * n * ts * g) / (r * m)
 
     def rotational_inertia(self, linear_velocity: float, angular_velocity: float) -> float:
         """
@@ -116,7 +118,7 @@ class Robot(object):
         :return: A tuple: (left_velocity, right_velocity)
         """
         _, _, _, base_width = self.robot_info
-        _, _, _, wheel_radius = self.chassis_info
+        _, _, _, wheel_radius, _ = self.chassis_info
 
         w = angular_velocity * (base_width / 2)
 

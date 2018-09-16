@@ -3,8 +3,8 @@ import matplotlib.pyplot as plot
 from numpy import arange, ndarray, array as nparray
 from trajectory import Trajectory, RobotSide
 from matplotlib.patches import Rectangle
+from math import sin, cos, radians, sqrt
 from abc import ABC, abstractmethod
-from math import sin, cos, radians
 from curve import CurveType
 from csv import DictWriter
 from typing import List
@@ -162,7 +162,7 @@ class DesmosOutput(Output):
 
 
 class CSVOutput(Output):
-    FIELDS = ['time', 'x', 'y', 'dx', 'dy', 'heading', 'vleft', 'vright']
+    FIELDS = ['time', 'x', 'y', 'dx', 'dy', 'heading', 'vleft', 'vright', 'acceleration']
 
     def __init__(self, trajectory: Trajectory, filename: str = None):
         super().__init__(trajectory)
@@ -178,6 +178,7 @@ class CSVOutput(Output):
 
         middle_position = self.trajectory.curve(CurveType.POSITION, concat=True)
         middle_velocity = self.trajectory.curve(CurveType.VELOCITY, concat=True)
+        middle_acceleration = self.trajectory.curve(CurveType.ACCELERATION, concat=True)
         headings = self.trajectory.headings()[0]
         left_speed = self.trajectory.robot_speeds(RobotSide.LEFT)
         right_speed = self.trajectory.robot_speeds(RobotSide.RIGHT)
@@ -191,5 +192,6 @@ class CSVOutput(Output):
                 'dy': middle_velocity[i, 1],
                 'heading': 90 - headings[i],
                 'vleft': left_speed[i][1],
-                'vright': right_speed[i][1]
+                'vright': right_speed[i][1],
+                'acceleration': sqrt(middle_acceleration[i, 0] ** 2 + middle_acceleration[i, 1] ** 2)
             })
