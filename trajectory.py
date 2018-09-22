@@ -1,7 +1,7 @@
 import json
 
 from numpy import array as nparray, concatenate as npconcat, cos as npcos, sin as npsin, radians as nprads
-from utils import angle_from_slope, linspace, clamp_to_bounds
+from utils import angle_from_slope, linspace, clamp_to_bounds, length_integral
 from curve import Curve, SplineType, CurveType
 from waypoint import Waypoint
 from robot import Robot
@@ -23,6 +23,9 @@ class Trajectory:
 
     # The number of samples to use in the calculations
     SAMPLE_SIZE = 100
+
+    # The number of samples to use in length calculations
+    L_SAMPLE_SIZE = 600
 
     def __init__(self, waypoints: List[Waypoint], robot: Robot, name: str = 'generic-path'):
         """
@@ -182,3 +185,45 @@ class Trajectory:
             ]
             for (i, s) in enumerate(speed)
         ]
+
+    def distance(self):
+        """
+        Calculates the distance passed by the middle of the robot through the curve.
+        :return: The distance passed through the curve
+        """
+        cp = self.control_points()
+        curves = [
+            Curve(control_points=points, spline_type=SplineType.QUINTIC_HERMITE)
+            for points in cp
+        ]
+
+        seg_lengths = [
+            length_integral(
+                0,
+                1,
+                lambda u: curves[i].calculate(u, CurveType.VELOCITY),
+                Trajectory.L_SAMPLE_SIZE
+            )
+            for i in range(self.num_of_segments)
+        ]
+
+        sums = [
+            sum([seg_lengths[j] for j in range(i)]) if i > 0 else 0
+            for i in range(self.num_of_segments)
+        ]
+
+        return npconcat([
+            [
+                [
+                    i + j / Trajectory.SAMPLE_SIZE,
+                    length_integral(
+                        0,
+                        j / Trajectory.SAMPLE_SIZE,
+                        lambda u: curves[i].calculate(u, CurveType.VELOCITY),
+                        Trajectory.L_SAMPLE_SIZE
+                    ) + sums[i]
+                ]
+                for j in range(Trajectory.SAMPLE_SIZE + 1)
+            ]
+            for i in range(self.num_of_segments)
+        ])

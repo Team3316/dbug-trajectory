@@ -160,6 +160,9 @@ class DesmosOutput(Output):
             for v in vright
         ])))
 
+        print('Middle distances:')
+        print(self.format(self.trajectory.distance()))
+
 
 class CSVOutput(Output):
     FIELDS = ['time', 'x', 'y', 'dx', 'dy', 'heading', 'vleft', 'vright', 'acceleration']
