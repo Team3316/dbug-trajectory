@@ -71,14 +71,15 @@ class Trajectory:
         for i in range(lw - 1):
             p0 = self.waypoints[i]
             p1 = self.waypoints[i + 1]
+            dist = p0.distance_to(p1)
 
             control_points.append(
                 nparray([
                     p0.point,
-                    p0.first_derivative(),
+                    p0.first_derivative(scale=1.5 * dist),
                     p0.second_derivative(),
                     p1.point,
-                    p1.first_derivative(),
+                    p1.first_derivative(scale=1.5 * dist),
                     p1.second_derivative()
                 ])
             )
