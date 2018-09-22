@@ -19,7 +19,7 @@ class Waypoint:
         self.angle = angle
         self.time = time
 
-    def first_derivative(self, velocity: bool = False, scale: float = 1.5) -> List[float]:
+    def first_derivative(self, velocity: bool = False, scale: float = 1.75) -> List[float]:
         rads = radians(90 - self.angle if not velocity else self.angle)
         x = cos(rads) * scale
         y = sin(rads) * scale
