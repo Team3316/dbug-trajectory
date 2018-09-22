@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plot
 
-from numpy import arange, ndarray, array as nparray
+from numpy import arange, ndarray, array as nparray, concatenate as npconcat
 from trajectory import Trajectory, RobotSide
 from matplotlib.patches import Rectangle
 from math import sin, cos, radians, sqrt
 from abc import ABC, abstractmethod
+from utils import clamp_to_bounds
 from curve import CurveType
 from csv import DictWriter
 from typing import List
@@ -129,8 +130,9 @@ class DesmosOutput(Output):
         print('Velocity vectors:')
         print(self.format(self.trajectory.curve(CurveType.VELOCITY)))
 
+        midvel = self.trajectory.speed(concat=False)
         print('Velocity:')
-        print(self.format(self.trajectory.speed()))
+        print(self.format(npconcat(midvel)))
 
         print('Left position:')
         print(self.format(self.trajectory.robot_curve(CurveType.POSITION, RobotSide.LEFT)))
@@ -160,8 +162,30 @@ class DesmosOutput(Output):
             for v in vright
         ])))
 
+        snc = self.trajectory.distance(concat=False)
+
         print('Middle distances:')
-        print(self.format(self.trajectory.distance()))
+        print(self.format(npconcat(snc)))
+
+        sp = [
+            clamp_to_bounds(
+                -(0.975 * free_speed),
+                0.975 * free_speed,
+                1.5 * max([v[1] for v in seg])
+            )
+            for seg in midvel
+        ]
+        print('Middle distances vs max speeds:')
+        print(self.format(npconcat([
+            [
+                [
+                    v[1],
+                    sp[i]
+                ]
+                for v in seg
+            ]
+            for (i, seg) in enumerate(snc)
+        ])))
 
 
 class CSVOutput(Output):

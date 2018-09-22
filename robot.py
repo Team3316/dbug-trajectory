@@ -1,6 +1,7 @@
 import json
 
 from typing import Tuple
+from utils import sign
 from math import inf
 
 
@@ -93,6 +94,20 @@ class Robot(object):
         r = linear_velocity / angular_velocity
 
         return m * (r ** 2)
+
+    def dist_to_vel(self, end_vel: float, start_vel: float = 0):
+        """
+        Calculates the needed distance required for the robot to reach end_vel in maximum acceleration. Calculated using
+        the kinematics formula:
+        end_vel^2 = start_vel^2 + 2 * acceleration * delta_x
+        :param end_vel: The starting velocity.
+        :param start_vel: The end velocity.
+        :return: The required distance.
+        """
+        acc = self.max_acceleration() * sign(end_vel - start_vel)
+        dvsq = (end_vel ** 2) - (start_vel ** 2)
+
+        return dvsq / (2 * acc)
 
     def inverse_kinematics(self, left_velocity: float, right_velocity: float) -> Tuple[float, float]:
         """

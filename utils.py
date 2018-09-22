@@ -69,3 +69,7 @@ def vectorify(t: NpCompatible) -> np.ndarray:
         return t
     else:
         return np.array(t)
+
+
+def sign(x: Union[float, int, np.float]) -> int:
+    return int(x) and (1, -1)[x < 0]

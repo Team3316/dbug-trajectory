@@ -102,14 +102,14 @@ class Trajectory:
 
         return npconcat(curves) if concat else curves
 
-    def speed(self):
+    def speed(self, concat: bool = True):
         """
         Calcualtes the speed of the _middle_ of the robot.
         :return: A numpy list of vectors [t, s(t)] for the time and speed values
         """
         velocities = self.curve(CurveType.VELOCITY, concat=False)
         times = [w.time for w in self.waypoints]
-        return npconcat([
+        speeds = [
             [
                 [
                     (times[i + 1] - times[i]) * (j / Trajectory.SAMPLE_SIZE) + times[i],
@@ -118,7 +118,9 @@ class Trajectory:
                 for j in range(Trajectory.SAMPLE_SIZE + 1)
             ]
             for i in range(self.num_of_segments)
-        ])
+        ]
+
+        return npconcat(speeds) if concat else speeds
 
     def headings(self):
         """
@@ -186,7 +188,7 @@ class Trajectory:
             for (i, s) in enumerate(speed)
         ]
 
-    def distance(self):
+    def distance(self, concat: bool = True):
         """
         Calculates the distance passed by the middle of the robot through the curve.
         :return: The distance passed through the curve
@@ -212,7 +214,7 @@ class Trajectory:
             for i in range(self.num_of_segments)
         ]
 
-        return npconcat([
+        lengths = [
             [
                 [
                     i + j / Trajectory.SAMPLE_SIZE,
@@ -226,4 +228,6 @@ class Trajectory:
                 for j in range(Trajectory.SAMPLE_SIZE + 1)
             ]
             for i in range(self.num_of_segments)
-        ])
+        ]
+
+        return npconcat(lengths) if concat else lengths
