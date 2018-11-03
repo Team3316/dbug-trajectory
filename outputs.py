@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plot
 
 from numpy import arange, ndarray, array as nparray, concatenate as npconcat
+from utils import clamp_to_bounds, NpCompatible
+from simulation.simulator import DBugSimulator
 from trajectory import Trajectory, RobotSide
 from matplotlib.patches import Rectangle
+from simulation.particle import Particle
 from math import sin, cos, radians, sqrt
 from abc import ABC, abstractmethod
-from utils import clamp_to_bounds
+from typing import List, Tuple
 from curve import CurveType
 from csv import DictWriter
-from typing import List
 
 
 class Output(ABC):
@@ -169,17 +171,21 @@ class DesmosOutput(Output):
 
         sp = [
             clamp_to_bounds(
-                -(0.975 * free_speed),
-                0.975 * free_speed,
-                1.5 * max([v[1] for v in seg])
+                -(0.9 * free_speed),
+                0.9 * free_speed,
+                max([v[1] for v in seg])
             )
             for seg in midvel
         ]
+        print([
+            self.trajectory.robot.dist_to_vel(v, sp[i - 1] if i > 0 else 0)
+            for (i, v) in enumerate(sp)
+        ])
         print('Middle distances vs max speeds:')
         print(self.format(npconcat([
             [
                 [
-                    v[1],
+                    # v[1],
                     sp[i]
                 ]
                 for v in seg
@@ -222,3 +228,49 @@ class CSVOutput(Output):
                 'vright': right_speed[i][1],
                 'acceleration': sqrt(middle_acceleration[i, 0] ** 2 + middle_acceleration[i, 1] ** 2)
             })
+
+
+class SimpulationOutput(Output):
+    FEET_IN_METER = 0.3048
+
+    def __init__(self, trajectory: Trajectory, field_width: float, field_height: float):
+        super(SimpulationOutput, self).__init__(trajectory)
+
+        self.width = field_width
+        self.height = field_height
+        self.window_dimensions = (round(100 * field_width) + 100, round(100 * field_height) + 100)
+        self.sim = DBugSimulator(win_dimensions=self.window_dimensions, name=trajectory.name)
+
+    def render_curve_output(self, points: NpCompatible, shift_x: float, color: Tuple[int, int ,int]):
+        self.sim.render_points([
+            Particle(
+                ((p[0] + shift_x) * 100, -p[1] * 100),
+                1,
+                origin=(50, self.window_dimensions[1] - 50),
+                color=color
+            )
+            for p in points
+        ])
+
+    def render(self):
+        shift_x = 0.91 + self.trajectory.robot.robot_info[3] / 2
+
+        self.render_curve_output(
+            points=self.trajectory.robot_curve(CurveType.POSITION, RobotSide.LEFT),
+            shift_x=shift_x,
+            color=(255, 105, 180)
+        )
+
+        self.render_curve_output(
+            points=self.trajectory.robot_curve(CurveType.POSITION, RobotSide.RIGHT),
+            shift_x=shift_x,
+            color=(255, 105, 180)
+        )
+
+        self.render_curve_output(
+            points=self.trajectory.curve(CurveType.POSITION),
+            shift_x=shift_x,
+            color=(0, 255, 0)
+        )
+
+        self.sim.loop()
