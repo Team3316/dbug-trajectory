@@ -238,8 +238,8 @@ class SimpulationOutput(Output):
 
         self.width = field_width
         self.height = field_height
-        self.window_dimensions = (round(100 * field_width) + 100, round(100 * field_height) + 100)
-        self.sim = DBugSimulator(win_dimensions=self.window_dimensions, name=trajectory.name)
+        self.window_dimensions = (round(100 * field_width), round(100 * field_height))
+        self.sim = DBugSimulator(graph_dimensions=self.window_dimensions, name=trajectory.name, border=50)
 
     def render_curve_output(self, points: NpCompatible, shift_x: float, color: Tuple[int, int ,int]):
         self.sim.render_points([
